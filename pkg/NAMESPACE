@@ -1,0 +1,1 @@
+export( "cmonkey","cmonkey.init","plotClust","cluster.summary","plot.stats","get.rows","get.cols","clusters.w.func","clusters.w.conds","clusters.w.genes","write.project","update.cmonkey.env","save.cmonkey.env" )

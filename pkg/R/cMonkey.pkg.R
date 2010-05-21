@@ -1,5 +1,5 @@
 DATE <-
-"Thu May 20 12:43:15 2010"
+"Fri May 21 13:37:31 2010"
 VERSION <-
 "4.5.0"
 .onLoad <-
@@ -356,9 +356,8 @@ function (env = NULL, ...)
         exists("ratios", envir = env)) {
         if (!exists("rnd.seed", envir = env$cmonkey.params)) {
             op <- options(digits.secs = 10)
-            tmp.rnd.seed <- as.integer(substr(gsub("[\\-\\:\\. ]", 
-                "", as.character(Sys.time()), perl = T), 12, 
-                20))
+            tmp.rnd.seed <- as.integer(substr(gsub("[-:. ]", 
+                "", as.character(Sys.time())), 12, 20))
             options(op)
             rm(op)
             cat("RESETTING RANDOM SEED: ")
@@ -562,8 +561,8 @@ function (env = NULL, ...)
             organism, "0x0", gsub(" ", "_", date.run), sep = "_"))
     }
     op <- options(digits.secs = 10)
-    set.param("rnd.seed", as.integer(substr(gsub("[\\-\\:\\. ]", 
-        "", as.character(Sys.time()), perl = T), 12, 20)))
+    set.param("rnd.seed", as.integer(substr(gsub("[-:. ]", "", 
+        as.character(Sys.time())), 12, 20)))
     options(op)
     rm(op)
     set.seed(rnd.seed)
@@ -577,8 +576,7 @@ function (env = NULL, ...)
                 select = "V4", drop = T))[1]
             rm(tab)
             if (any(strsplit(rsat.spec, "")[[1]] == "(")) 
-                rsat.spec <- gsub("\\s\\(.*\\)", "", rsat.spec, 
-                  perl = T)
+                rsat.spec <- gsub("\\s\\(.*\\)", "", rsat.spec)
         }
         rsat.spec <- gsub(" ", "_", rsat.spec, fixed = T)
         if (!file.exists("data/RSAT_genomes_listing.txt")) {

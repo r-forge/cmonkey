@@ -1,5 +1,5 @@
-\name{cmonkey}
-\alias{cmonkey}
+\name{plotStats}
+\alias{plotStats}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 ##  ##function to do ... ##
@@ -8,12 +8,18 @@
 ##  ## A concise (1-5 lines) description of what the function does. ##
 }
 \usage{
-cmonkey(env = NULL, ...)
+plotStats(iter = stats$iter[nrow(stats)], plot.clust = NA, new.dev = T, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{env}{
-##     ##Describe \code{env} here##
+  \item{iter}{
+##     ##Describe \code{iter} here##
+}
+  \item{plot.clust}{
+##     ##Describe \code{plot.clust} here##
+}
+  \item{new.dev}{
+##     ##Describe \code{new.dev} here##
 }
   \item{\dots}{
 ##     ##Describe \code{\dots} here##

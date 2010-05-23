@@ -2,10 +2,10 @@
 \alias{clusters.w.conds}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-~~  ~~function to do ... ~~
+##  ##function to do ... ##
 }
 \description{
-~~  ~~ A concise (1-5 lines) description of what the function does. ~~
+##  ## A concise (1-5 lines) description of what the function does. ##
 }
 \usage{
 clusters.w.conds(conds, ks = 1:k.clust, p.val = F)
@@ -13,58 +13,44 @@ clusters.w.conds(conds, ks = 1:k.clust, p.val = F)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{conds}{
-~~     ~~Describe \code{conds} here~~
+##     ##Describe \code{conds} here##
 }
   \item{ks}{
-~~     ~~Describe \code{ks} here~~
+##     ##Describe \code{ks} here##
 }
   \item{p.val}{
-~~     ~~Describe \code{p.val} here~~
+##     ##Describe \code{p.val} here##
 }
 }
 \details{
-~~  ~~ If necessary, more details than the description above ~~
+##  ## If necessary, more details than the description above ##
 }
 \value{
-~~  ~Describe the value returned
-~~  If it is a LIST, use
-~~  \item{comp1 }{Description of 'comp1'}
-~~  \item{comp2 }{Description of 'comp2'}
-~~ ...
+##  ~Describe the value returned
+##  If it is a LIST, use
+##  \item{comp1 }{Description of 'comp1'}
+##  \item{comp2 }{Description of 'comp2'}
+## ...
 }
 \references{
-~~ ~put references to the literature/web site here ~
+## ~put references to the literature/web site here ~
 }
 \author{
-~~  ~~who you are~~
+##  ##who you are##
 }
 \note{
-~~  ~~further notes~~
+##  ##further notes##
 }
 
-~~ ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-~~ ~~objects to See Also as \code{\link{help}}, ~~~
+## ##objects to See Also as \code{\link{help}}, ##~
 }
 \examples{
 ##---- Should be DIRECTLY executable !! ----
 ##-- ==>  Define data, use random,
 ##--	or do  help(data=index)  for the standard data sets.
 
-## The function is currently defined as
-function (conds, ks = 1:k.clust, p.val = F) 
-{
-    mc <- get.parallel(length(ks))
-    unlist(mc$apply(ks, function(i) {
-        cols <- get.cols(i)
-        if (!p.val) 
-            sum(cols \%in\% conds)
-        else phyper(sum(cols \%in\% conds), length(conds), attr(ratios, 
-            "ncol") - length(conds), length(cols), lower = F) * 
-            length(ks)
-    }))
-  }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

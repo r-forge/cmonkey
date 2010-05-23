@@ -2,10 +2,10 @@ Package: cMonkey
 Type: Package
 Title: cMonkey intgrated biclustering algorithm
 Version: 4.5.0
-Date: 2010-05-21
+Date: 2010-05-22
 Author: David J Reiss, Institute for Systems Biology
 Maintainer: David J Reiss <dreiss@systemsbiology.org>
 Description: cMonkey integrated biclustering algorithm for learning co-regulated gene modules
-License: GNU General Public License, version 2
+License: GPL-2
 LazyLoad: yes
-Suggests: RCurl, doMC, multicore, ff, igraph, RSVGTipsDevice, hwriter 
+Suggests: RCurl, foreach, doMC, multicore, ff, igraph, RSVGTipsDevice, hwriter, trimcluster 

@@ -7,14 +7,6 @@ function( libname, pkgname ) { ##.onAttach
     message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
     message( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
     message( "http://baliga.systemsbiology.net/cmonkey" )
-    vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
-    if ( class( vers ) != "try-error" ) {
-      vers <- gsub( " ", "", vers )
-      if ( vers != VERSION ) message( "WARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to version ", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions at the website listed above." )
-      else message( "Congratulations! You are using the latest version of cMonkey.\n" )
-    } else {
-      message( "WARNING: Could not check to see if you are using the latest version of cMonkey." )
-    }
   }
 
 adjust.all.clusters <-

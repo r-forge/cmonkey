@@ -1,5 +1,5 @@
 DATE <-
-"Tue Oct  5 15:21:15 2010"
+"Wed Oct  6 13:48:06 2010"
 VERSION <-
 "4.7.0"
 .onLoad <-
@@ -36,7 +36,7 @@ function (env, ks = 1:env$k.clust, force.motif = T, ...)
         }
     }
     env$row.membership <- rm
-    tmp <- env$get.all.scores(force.resid = T, force.motif = force.motif & 
+    tmp <- env$get.all.scores(force.row = T, force.col = T, force.motif = force.motif & 
         !no.genome.info, force.net = T)
     env$row.scores <- tmp$r[, ]
     env$mot.scores <- tmp$m[, ]
@@ -4695,8 +4695,8 @@ function (k, o.genes = NULL, recompute = F)
     opar <- par(no.readonly = T)
     rows <- get.rows(k)
     if (recompute) {
-        tmp <- get.all.scores(k, force.resid = T, force.motif = T, 
-            force.net = T)
+        tmp <- get.all.scores(k, force.row = T, force.col = T, 
+            force.motif = T, force.net = T)
         rs <- tmp$r
         ms <- tmp$m
         ns <- tmp$n

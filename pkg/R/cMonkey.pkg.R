@@ -1,7 +1,7 @@
 DATE <-
-"Wed Oct  6 13:48:06 2010"
+"Thu Oct  7 21:56:00 2010"
 VERSION <-
-"4.7.0"
+"4.7.1"
 .onLoad <-
 function( libname, pkgname ) { ##.onAttach
     message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
@@ -359,7 +359,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"4.7.0"
+"4.7.1"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -541,7 +541,13 @@ function (env = NULL, ...)
         set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
     else if (file.exists("./progs")) 
         set.param("progs.dir", "./progs/")
-    else message("WARNING: You do not have meme/mast/dust installed.\nTry running cMonkey:::install.binaries() or see the instructions on the website.\n")
+    else {
+        message("WARNING: You do not have meme/mast/dust installed.\nTrying to install it now.\n")
+        install.binaries()
+        if ("package:cMonkey" %in% search() && file.exists(sprintf("%s/progs/", 
+            system.file(package = "cMonkey")))) 
+            message("WARNING: Could not install meme. Please see the website for installation instructions.")
+    }
     set.param("meme.cmd", paste(progs.dir, "meme $fname -bfile $bgFname -psp $pspFname -time 600 -dna -revcomp -maxsize 9999999 -nmotifs %1$d -evt 1e9 -minw 6 -maxw 24 -mod zoops -nostatus -text -cons $compute -pal=non", 
         sep = "/"))
     set.param("mast.cmd", sprintf("%s/mast $memeOutFname -d $fname -bfile $bgFname -nostatus -stdout -text -brief -ev 99999 -mev 99999 -mt 0.99 -seqp -remcorr", 
@@ -3204,6 +3210,7 @@ function (meme.version = "4.3.0", url = sprintf("http://meme.nbcr.net/downloads/
     meme.version)) 
 {
     cwd <- setwd(system.file(package = "cMonkey"))
+    on.exit(setwd(cwd))
     if (!exists("progs")) 
         dir.create("progs")
     setwd("progs/")
@@ -3221,6 +3228,7 @@ function (meme.version = "4.3.0", url = sprintf("http://meme.nbcr.net/downloads/
     system(sprintf("ln -s meme_%s/local/bin/mast", meme.version))
     system(sprintf("ln -s meme_%s/local/bin/dust", meme.version))
     system(sprintf("ln -s meme_%s/local/bin/tomtom", meme.version))
+    setwd(cwd)
 }
 load.ratios <-
 function (ratios) 

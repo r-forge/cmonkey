@@ -1,22 +1,29 @@
 DATE <-
-"Thu Oct  7 21:56:00 2010"
+"Tue Oct 12 15:12:31 2010"
 VERSION <-
-"4.7.1"
+"4.7.2"
 .onLoad <-
-function( libname, pkgname ) { ##.onAttach
-    message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
-    message( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
-    message( "http://baliga.systemsbiology.net/cmonkey" )
-    vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
-    if ( class( vers ) != "try-error" ) {
-      vers <- gsub( " ", "", vers )
-      if ( vers != VERSION ) message( "\nWARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website." )
-      else message( "Congratulations! You are using the latest version of cMonkey.\n" )
-    } else {
-      message( "WARNING: Could not check to see if you are using the latest version of cMonkey." )
+function (libname, pkgname) 
+{
+    message("Loading ", pkgname, " version ", VERSION, " (", 
+        DATE, ")")
+    message("Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org.")
+    message("http://baliga.systemsbiology.net/cmonkey")
+    vers <- try(readLines("http://baliga.systemsbiology.net/cmonkey/VERSION"), 
+        silent = T)
+    if (class(vers) != "try-error") {
+        vers <- gsub(" ", "", vers)
+        if (vers != VERSION) 
+            message("\nWARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to v", 
+                vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", 
+                vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", 
+                vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website.")
+        else message("Congratulations! You are using the latest version of cMonkey.\n")
     }
-  }
-
+    else {
+        message("WARNING: Could not check to see if you are using the latest version of cMonkey.")
+    }
+}
 adjust.all.clusters <-
 function (env, ks = 1:env$k.clust, force.motif = T, ...) 
 {
@@ -229,20 +236,11 @@ function (k, rats.inds = "COMBINED", varNorm = F, in.cols = T,
     if (rats.inds[1] == "COMBINED") 
         inds <- names(get("row.weights"))
     resids <- sapply(ratios[inds], function(rn) {
-        if (row.score.func == "orig") {
-            if (in.cols) 
-                residual.submatrix(rn, get.rows(k), get.cols(k), 
-                  varNorm = varNorm)
-            else residual.submatrix(rn, get.rows(k), colnames(rn)[!colnames(rn) %in% 
-                get.cols(k)], varNorm = varNorm)
-        }
-        else {
-            if (in.cols) 
-                mean(get.row.scores(k, for.rows = get.rows(k), 
-                  ratios = rn, method = row.score.func))
-            else mean(get.row.scores(k, cols = get.cols(k), for.rows = get.rows(k), 
-                ratios = rn, method = row.score.func))
-        }
+        if (in.cols) 
+            residual.submatrix(rn, get.rows(k), get.cols(k), 
+                varNorm = varNorm)
+        else residual.submatrix(rn, get.rows(k), colnames(rn)[!colnames(rn) %in% 
+            get.cols(k)], varNorm = varNorm)
     })
     if (rats.inds[1] == "COMBINED") 
         resids <- weighted.mean(resids, row.weights[inds], na.rm = T)
@@ -359,7 +357,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"4.7.1"
+"4.7.2"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -544,7 +542,8 @@ function (env = NULL, ...)
     else {
         message("WARNING: You do not have meme/mast/dust installed.\nTrying to install it now.\n")
         install.binaries()
-        if ("package:cMonkey" %in% search() && file.exists(sprintf("%s/progs/", 
+        set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
+        if ("package:cMonkey" %in% search() && !file.exists(sprintf("%s/progs/", 
             system.file(package = "cMonkey")))) 
             message("WARNING: Could not install meme. Please see the website for installation instructions.")
     }
@@ -1729,7 +1728,7 @@ function (ks = 1:k.clust, force.row = F, force.col = F, force.motif = F,
             if (row.weights[i] == 0 || is.na(row.weights[i])) 
                 next
             tmp.row <- do.call(cbind, mc$apply(ks, get.row.scores, 
-                ratios = ratios[[i]], method = row.score.func))
+                ratios = ratios[[i]]))
             tmp <- is.infinite(tmp.row) | is.na(tmp.row)
             if (any(tmp)) 
                 tmp.row[tmp] <- quantile(tmp.row[row.memb[rownames(tmp.row), 
@@ -1753,7 +1752,7 @@ function (ks = 1:k.clust, force.row = F, force.col = F, force.motif = F,
             if (row.weights[i] == 0 || is.na(row.weights[i])) 
                 next
             tmp.col <- do.call(cbind, mc$apply(ks, get.col.scores, 
-                ratios = ratios[[i]], method = col.score.func))
+                ratios = ratios[[i]]))
             tmp <- is.infinite(tmp.col) | is.na(tmp.col)
             if (any(tmp)) 
                 tmp.col[tmp] <- quantile(tmp.col[col.memb[rownames(tmp.col), 
@@ -1927,9 +1926,8 @@ function (ks = 1:k.clust, force = F, ...)
     clusterStack
 }
 get.col.scores <-
-function (k, for.cols = "all", ratios = ratios[[1]], method = c("new", 
-    "orig", "ent")[1], norm.method = c("mean", "all.colVars", 
-    "none")[1], ...) 
+function (k, for.cols = "all", ratios = ratios[[1]], norm.method = c("mean", 
+    "all.colVars", "none")[1], ...) 
 {
     if (length(k) <= 0) 
         return(NULL)
@@ -1945,44 +1943,16 @@ function (k, for.cols = "all", ratios = ratios[[1]], method = c("new",
     row.weights <- if (exists("get.row.weights")) 
         get.row.weights(rows, cols, ratios)
     else NA
-    if (method == "orig") {
-        if (is.na(row.weights[1])) {
-            rats.mn <- matrix(colMeans(rats, na.rm = T), nrow = nrow(rats), 
-                ncol = ncol(rats), byrow = T)
-        }
-        else {
-            rats.mn <- matrix(apply(rats, 2, weighted.mean, w = row.weights[rows], 
-                na.rm = T), ncol = ncol(rats), byrow = T)
-        }
-        rats[, ] <- (rats[, ] - rats.mn)^2
-        rats <- colMeans(rats, na.rm = T)
+    if (is.na(row.weights[1])) {
+        rats.mn <- matrix(colMeans(rats, na.rm = T), nrow = nrow(rats), 
+            ncol = ncol(rats), byrow = T)
     }
-    else if (method == "new") {
-        mn <- mean(get.row.scores(k, ratios = ratios, method = row.score.func, 
-            ...), na.rm = T)
-        cols <- get.cols(k)
-        rats <- -sapply(for.cols, function(cc) {
-            if (is.na(row.weights[1])) {
-                if (cc %in% cols) 
-                  mn/mean(get.row.scores(k, cols = cols[cols != 
-                    cc], ratios = ratios, method = row.score.func, 
-                    ...), na.rm = T)
-                else mean(get.row.scores(k, cols = c(cols, cc), 
-                  ratios = ratios, method = row.score.func, ...), 
-                  na.rm = T)/mn
-            }
-            else {
-                if (cc %in% cols) 
-                  mn/weighted.mean(get.row.scores(k, cols = cols[cols != 
-                    cc], ratios = ratios, method = row.score.func, 
-                    ...), w = row.weights, na.rm = T)
-                else weighted.mean(get.row.scores(k, cols = c(cols, 
-                  cc), ratios = ratios, method = row.score.func, 
-                  ...), w = row.weights, na.rm = T)/mn
-            }
-        })
-        return(rats)
+    else {
+        rats.mn <- matrix(apply(rats, 2, weighted.mean, w = row.weights[rows], 
+            na.rm = T), ncol = ncol(rats), byrow = T)
     }
+    rats[, ] <- (rats[, ] - rats.mn)^2
+    rats <- colMeans(rats, na.rm = T)
     var.norm <- 0.99
     if (norm.method == "all.colVars") {
         all.colVars <- attr(ratios, "all.colVars")
@@ -1990,26 +1960,15 @@ function (k, for.cols = "all", ratios = ratios[[1]], method = c("new",
             var.norm <- all.colVars[for.cols]
     }
     else if (norm.method == "mean") {
-        if (!exists("rats.mn")) {
-            row.weights <- if (exists("get.row.weights")) 
-                get.row.weights(rows, cols, ratios)
-            else NA
-            rats.tmp <- ratios[rows, for.cols, drop = F]
-            if (is.na(row.weights[1])) {
-                rats.mn <- matrix(colMeans(rats.tmp, na.rm = T), 
-                  nrow = nrow(rats.tmp), ncol = ncol(rats.tmp), 
-                  byrow = T)
-            }
-            else {
-                rats.mn <- matrix(apply(rats.tmp, 2, weighted.mean, 
-                  w = row.weights[rows], na.rm = T), ncol = ncol(rats.tmp), 
-                  byrow = T)
-            }
-        }
         var.norm <- abs(rats.mn[1, ])
     }
     rats <- rats/(var.norm + 0.01)
     rats
+}
+get.col.weights <-
+function (rows, cols, ratios) 
+{
+    NA
 }
 get.cols <-
 function (k, cm = get("col.membership")) 
@@ -2114,7 +2073,7 @@ get.density.scores <-
 function (ks = 1:k.clust, n.cutoff = 5, plot = "none") 
 {
     rr <- attr(ratios, "rnames")
-    bw.r <- diff(range(r.scores[, ], na.rm = T))/100
+    bw.r <- max(diff(range(r.scores[, ], na.rm = T))/100, 0.01)
     get.rr.scores <- function(k) {
         rows <- get.rows(k)
         cols <- get.cols(k)
@@ -2147,7 +2106,8 @@ function (ks = 1:k.clust, n.cutoff = 5, plot = "none")
     rownames(rr.scores) <- attr(ratios, "rnames")
     cc.scores <- NULL
     if (!is.null(col.scores)) {
-        bw.c <- diff(range(col.scores[, ], na.rm = T))/100
+        bw.c <- max(diff(range(col.scores[, ], na.rm = T))/100, 
+            0.01)
         get.cc.scores <- function(k) {
             cols <- get.cols(k)
             rows <- get.rows(k)
@@ -2757,7 +2717,7 @@ function (mast.out, rows)
 }
 get.row.scores <-
 function (k, cols = get.cols(k), for.rows = "all", ratios = ratios[[1]], 
-    method = c("cor2", "dist", "orig")[1], ...) 
+    ...) 
 {
     if (length(k) <= 0) 
         return(NULL)
@@ -2770,24 +2730,19 @@ function (k, cols = get.cols(k), for.rows = "all", ratios = ratios[[1]],
     cols <- cols[cols %in% colnames(ratios)]
     if (length(rows) < 1 || length(cols) <= 1) 
         return(rep(NA, length(for.rows)))
-    if (method == "orig") {
-        rats <- ratios[for.rows, cols, drop = F]
-        rats.mn <- colMeans(rats[rows, , drop = F], na.rm = T)
-        rats.mn <- matrix(rats.mn, nrow = nrow(rats), ncol = ncol(rats), 
-            byrow = T)
-        rats[, ] <- (rats[, ] - rats.mn)^2
-        col.weights <- if (exists("get.column.weights")) 
-            get.column.weights(rows, cols, ratios)
-        else NA
-        if (is.na(col.weights[1])) 
-            rats <- rowMeans(rats, na.rm = T)
-        else rats <- apply(abs(rats), 1, weighted.mean, w = col.weights[cols], 
-            na.rm = T)
-        rats <- log(rats + 1e-99)
-    }
-    else if (exists("get.row.scores.NEW")) 
-        rats <- get.row.scores.NEW(k, cols, rows, ratios, method, 
-            ...)
+    rats <- ratios[for.rows, cols, drop = F]
+    rats.mn <- colMeans(rats[rows, , drop = F], na.rm = T)
+    rats.mn <- matrix(rats.mn, nrow = nrow(rats), ncol = ncol(rats), 
+        byrow = T)
+    rats[, ] <- (rats[, ] - rats.mn)^2
+    col.weights <- if (exists("get.col.weights")) 
+        get.col.weights(rows, cols, ratios)
+    else NA
+    if (is.na(col.weights[1])) 
+        rats <- rowMeans(rats, na.rm = T)
+    else rats <- apply(abs(rats), 1, weighted.mean, w = col.weights[cols], 
+        na.rm = T)
+    rats <- log(rats + 1e-99)
     return(rats)
 }
 get.rows <-
@@ -2915,7 +2870,8 @@ function (mean.func = median)
             1, function(i) 1:k.clust %in% i)), na.rm = T)
     resids <- sapply(clusterStack, "[[", "resid")
     if (is.matrix(resids)) 
-        resids <- apply(resids[resids != 1], 1, mean.func, na.rm = T)
+        resids <- apply(resids, 1, function(r) mean.func(r[r != 
+            1], na.rm = T))
     else resids <- mean.func(resids[resids != 1], na.rm = T)
     p.clusts <- sapply(clusterStack, "[[", "p.clust")
     if (is.matrix(p.clusts)) 
@@ -3227,7 +3183,6 @@ function (meme.version = "4.3.0", url = sprintf("http://meme.nbcr.net/downloads/
     system(sprintf("ln -s meme_%s/local/bin/meme", meme.version))
     system(sprintf("ln -s meme_%s/local/bin/mast", meme.version))
     system(sprintf("ln -s meme_%s/local/bin/dust", meme.version))
-    system(sprintf("ln -s meme_%s/local/bin/tomtom", meme.version))
     setwd(cwd)
 }
 load.ratios <-

@@ -1,29 +1,22 @@
 DATE <-
-"Tue Oct 12 15:12:31 2010"
+"Thu Oct 14 11:38:02 2010"
 VERSION <-
 "4.7.2"
 .onLoad <-
-function (libname, pkgname) 
-{
-    message("Loading ", pkgname, " version ", VERSION, " (", 
-        DATE, ")")
-    message("Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org.")
-    message("http://baliga.systemsbiology.net/cmonkey")
-    vers <- try(readLines("http://baliga.systemsbiology.net/cmonkey/VERSION"), 
-        silent = T)
-    if (class(vers) != "try-error") {
-        vers <- gsub(" ", "", vers)
-        if (vers != VERSION) 
-            message("\nWARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to v", 
-                vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", 
-                vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", 
-                vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website.")
-        else message("Congratulations! You are using the latest version of cMonkey.\n")
+function( libname, pkgname ) { ##.onAttach
+    message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
+    message( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
+    message( "http://baliga.systemsbiology.net/cmonkey" )
+    vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
+    if ( class( vers ) != "try-error" ) {
+      vers <- gsub( " ", "", vers )
+      if ( vers != VERSION ) message( "\nWARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website." )
+      else message( "Congratulations! You are using the latest version of cMonkey.\n" )
+    } else {
+      message( "WARNING: Could not check to see if you are using the latest version of cMonkey." )
     }
-    else {
-        message("WARNING: Could not check to see if you are using the latest version of cMonkey.")
-    }
-}
+  }
+
 adjust.all.clusters <-
 function (env, ks = 1:env$k.clust, force.motif = T, ...) 
 {
@@ -515,7 +508,7 @@ function (env = NULL, ...)
     set.param("row.scaling", 1)
     set.param("row.weights", c(ratios = 1))
     set.param("row.score.func", "orig")
-    set.param("col.score.func", "new")
+    set.param("col.score.func", "orig")
     set.param("mot.scaling", seq(0, 1, length = n.iter/2))
     set.param("mot.weights", c(`upstream meme` = 1))
     set.param("net.scaling", seq(0, 0.5, length = n.iter/2))
@@ -1177,13 +1170,13 @@ function (env = NULL, ...)
     invisible(env)
 }
 cmonkey.one.iter <-
-function (env, dont.update = F) 
+function (env, dont.update = F, ...) 
 {
     env$row.memb <- t(apply(row.membership, 1, function(i) 1:k.clust %in% 
         i))
     env$col.memb <- t(apply(col.membership, 1, function(i) 1:k.clust %in% 
         i))
-    tmp <- get.all.scores()
+    tmp <- get.all.scores(...)
     env$row.scores <- tmp$r[, ]
     env$mot.scores <- tmp$m
     env$net.scores <- tmp$n
@@ -3965,10 +3958,10 @@ function (cluster, imag = F, cond.labels = F, o.genes = NULL,
                 ind <- ind + sum(cols %in% colnames(ratios[[i]]))
                 if (in.out == 1) 
                   rts.in <- cbind(rts.in, rats[, cols[cols %in% 
-                    colnames(ratios[[i]]), drop = F]])
+                    colnames(ratios[[i]])], drop = F])
                 else if (in.out == 2) 
                   rts.out <- cbind(rts.out, rats[, cols[cols %in% 
-                    colnames(ratios[[i]]), drop = F]])
+                    colnames(ratios[[i]])], drop = F])
             }
         }
         rats <- cbind(rts.in, rts.out)
@@ -5049,15 +5042,18 @@ function (seqs, length = 8, entropy.cutoff = 0.6, repl = "N",
             " ")[[1]][which(strsplit(meme.cmd[seq.type], " ")[[1]] == 
             "-maxw") + 1])
         seqs <- seqs[nchar(seqs) >= max.width]
-        fname <- my.tempfile("dust", suf = ".fst")
-        write.fasta(seqs, fname)
-        cmd <- gsub("$fname", fname, dust.cmd, fixed = T)
-        fst <- system.time.limit(paste(cmd, "2>/dev/null"), tlimit = 60)
-        unlink(fname)
-        if (length(fst) <= 1) 
-            cat("WARNING: you probably don't have 'dust' installed.\n")
-        else seqs <- read.fasta(NULL, fst)
-        return(seqs)
+        if (length(seqs) > 0) {
+            fname <- my.tempfile("dust", suf = ".fst")
+            write.fasta(seqs, fname)
+            cmd <- gsub("$fname", fname, dust.cmd, fixed = T)
+            fst <- system.time.limit(paste(cmd, "2>/dev/null"), 
+                tlimit = 60)
+            unlink(fname)
+            if (length(fst) <= 1) 
+                cat("WARNING: you probably don't have 'dust' installed.\n")
+            else seqs <- read.fasta(NULL, fst)
+            return(seqs)
+        }
     }
     shannon.entropy <- function(string) {
         ni <- table(string)/length + 1e-10
@@ -5161,28 +5157,7 @@ function (env = NULL, file = NULL, restore = T, verbose = T)
     tmp <- list()
     if (is.null(file)) 
         file <- paste(env$cmonkey.filename, ".RData", sep = "")
-    if (env$big.matrices > 0 && ("package:ff" %in% search())) {
-        for (i in c("row.scores", "mot.scores", "net.scores", 
-            "r.scores", "rr.scores", "col.scores", "net.scores", 
-            "row.memb", "col.memb")) {
-            if (!is.null(env[[i]]) && "ff" %in% class(env[[i]])) {
-                tmp[[i]] <- env[[i]]
-                env[[i]] <- env[[i]][, ]
-            }
-        }
-        for (i in names(env$meme.scores)) {
-            for (j in c("all.pv", "all.ev")) {
-                if (!is.null(env$meme.scores[[i]][[j]]) && "ff" %in% 
-                  class(env$meme.scores[[i]][[j]])) {
-                  if (is.null(tmp[[i]])) 
-                    tmp[[i]] <- list()
-                  tmp[[i]][[j]] <- env$meme.scores[[i]][[j]]
-                  env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
-                    ]
-                }
-            }
-        }
-    }
+    un.ffify.env(env)
     cat("Saving environment to", file, "\n")
     save.image(file)
     if (length(tmp) > 0 && restore && env$big.matrices > 0) {
@@ -5459,6 +5434,33 @@ function (cmd, tlimit = 600)
 {
     out <- readLines(pipe(cmd, "rt"))
     out
+}
+un.ffify.env <-
+function (env) 
+{
+    if (env$big.matrices > 0 && ("package:ff" %in% search())) {
+        for (i in c("row.scores", "mot.scores", "net.scores", 
+            "r.scores", "rr.scores", "col.scores", "net.scores", 
+            "cc.scores", "row.memb", "col.memb")) {
+            if (!is.null(env[[i]]) && "ff" %in% class(env[[i]])) {
+                tmp[[i]] <- env[[i]]
+                env[[i]] <- env[[i]][, ]
+            }
+        }
+        for (i in names(env$meme.scores)) {
+            for (j in c("all.pv", "all.ev")) {
+                if (!is.null(env$meme.scores[[i]][[j]]) && "ff" %in% 
+                  class(env$meme.scores[[i]][[j]])) {
+                  if (is.null(tmp[[i]])) 
+                    tmp[[i]] <- list()
+                  tmp[[i]][[j]] <- env$meme.scores[[i]][[j]]
+                  env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
+                    ]
+                }
+            }
+        }
+    }
+    invisible(env)
 }
 update.cmonkey.env <-
 function (object, ...) 

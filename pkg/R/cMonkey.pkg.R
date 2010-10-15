@@ -1,5 +1,5 @@
 DATE <-
-"Thu Oct 14 11:38:02 2010"
+"Fri Oct 15 13:29:22 2010"
 VERSION <-
 "4.7.2"
 .onLoad <-
@@ -5643,8 +5643,7 @@ function (ks = sapply(clusterStack, "[[", "k"), out.dir = NULL,
         require(igraph)
         cat("SVGS: ")
         for (qqq in 1:3) {
-            mc$apply(ks, function(i) {
-                k <- ks[i]
+            mc$apply(ks, function(k) {
                 if (k%%25 == 0) 
                   cat(k)
                 else cat(".")
@@ -5664,8 +5663,7 @@ function (ks = sapply(clusterStack, "[[", "k"), out.dir = NULL,
     if ("pdf" %in% output) {
         require(igraph)
         cat("PDFS: ")
-        mc$apply(ks, function(i) {
-            k <- ks[i]
+        mc$apply(ks, function(k) {
             if (k%%25 == 0) 
                 cat(k)
             else cat(".")

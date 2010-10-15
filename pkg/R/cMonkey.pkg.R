@@ -1,5 +1,5 @@
 DATE <-
-"Fri Oct 15 13:29:22 2010"
+"Fri Oct 15 15:21:48 2010"
 VERSION <-
 "4.7.2"
 .onLoad <-
@@ -527,11 +527,13 @@ function (env = NULL, ...)
     set.param("maintain.seed", NULL)
     set.param("string.links.url", "http://string82.embl.de/newstring_download/protein.links.v8.2.txt.gz")
     set.param("n.motifs", c(rep(1, n.iter/3), rep(2, n.iter/3)))
-    if ("package:cMonkey" %in% search() && file.exists(sprintf("%s/progs/", 
-        system.file(package = "cMonkey")))) 
-        set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
-    else if (file.exists("./progs")) 
+    if (file.exists("./progs")) {
         set.param("progs.dir", "./progs/")
+    }
+    else if ("package:cMonkey" %in% search() && file.exists(sprintf("%s/progs/", 
+        system.file(package = "cMonkey")))) {
+        set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
+    }
     else {
         message("WARNING: You do not have meme/mast/dust installed.\nTrying to install it now.\n")
         install.binaries()
@@ -5443,7 +5445,6 @@ function (env)
             "r.scores", "rr.scores", "col.scores", "net.scores", 
             "cc.scores", "row.memb", "col.memb")) {
             if (!is.null(env[[i]]) && "ff" %in% class(env[[i]])) {
-                tmp[[i]] <- env[[i]]
                 env[[i]] <- env[[i]][, ]
             }
         }
@@ -5453,7 +5454,6 @@ function (env)
                   class(env$meme.scores[[i]][[j]])) {
                   if (is.null(tmp[[i]])) 
                     tmp[[i]] <- list()
-                  tmp[[i]][[j]] <- env$meme.scores[[i]][[j]]
                   env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
                     ]
                 }

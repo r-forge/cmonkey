@@ -3,12 +3,10 @@
 \alias{cMonkey}
 \docType{package}
 \title{
-What the package does (short line)
-## package title ##
+cMonkey intgrated biclustering algorithm
 }
 \description{
-More about what it does (maybe more than one line)
-## A concise (1-5 lines) description of the package ##
+cMonkey integrated biclustering algorithm for learning co-regulated gene modules
 }
 \details{
 \tabular{ll}{
@@ -16,26 +14,26 @@ Package: \tab cMonkey\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
 Date: \tab 2010-10-15\cr
-License: \tab What license is it under?\cr
+License: \tab GPL-2\cr
 LazyLoad: \tab yes\cr
 }
-## An overview of how to use the package, including the most important ##
-## functions ##
+\url{http://baliga.systemsbiology.net/cmonkey}
 }
 \author{
-Who wrote it
+David J Reiss, Institute for Systems Biology
 
-Maintainer: Who to complain to <yourfault@somewhere.net>
-## The author and/or maintainer of the package ##
+Maintainer: \email{dreiss@systemsbiology.org}
 }
 \references{
-## Literature or other references for background information ##
+"Integrated biclustering of heterogeneous genome-wide datasets for the inference of global regulatory networks",
+by David J Reiss, Nitin S Baliga and Richard Bonneau: \url{http://www.biomedcentral.com/1471-2105/7/280}
 }
 \keyword{ package }
 \seealso{
-## Optional links to other man pages, e.g. ##
-## \code{\link[cMonkey:cMonkey-package]{cMonkey}} ##
+\url{http://baliga.systemsbiology.net/cmonkey}
+
+
 }
 \examples{
-## simple examples of the most important functions ##
+ 
 }

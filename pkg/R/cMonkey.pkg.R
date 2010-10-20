@@ -1,5 +1,5 @@
 DATE <-
-"Fri Oct 15 15:21:48 2010"
+"Wed Oct 20 15:16:28 2010"
 VERSION <-
 "4.7.2"
 .onLoad <-
@@ -371,16 +371,15 @@ function (env = NULL, ...)
         nrow(env$col.membership) != attr(env$ratios, "ncol")) && 
         exists("ratios", envir = env)) 
         env$cmonkey.re.seed(env)
-    iter <- env$iter
-    while (iter <= env$n.iter) {
-        env$iter <- iter
+    while (env$iter <= env$n.iter) {
+        iter <- env$iter
         env$cmonkey.one.iter(env)
-        iter <- iter + 1
+        env$iter <- env$iter + 1
     }
     if (!is.na(env$plot.iters) && (iter %in% env$plot.iters || 
         (iter - 1) %in% env$plot.iters)) 
         try(env$plotStats(iter, plot.clust = env$favorite.cluster()))
-    env$iter <- iter <- iter - 1
+    env$iter <- iter <- env$iter - 1
     print(env$cluster.summary())
     if (env$post.adjust == TRUE) {
         env$pre.adjusted.row.membership <- env$row.membership
@@ -512,11 +511,12 @@ function (env = NULL, ...)
     set.param("mot.scaling", seq(0, 1, length = n.iter/2))
     set.param("mot.weights", c(`upstream meme` = 1))
     set.param("net.scaling", seq(0, 0.5, length = n.iter/2))
-    set.param("net.weights", c(string = 0.5))
+    set.param("net.weights", c(string = 0.5, operons = 0.5))
     set.param("grouping.weights", numeric())
     set.param("plot.iters", seq(2, n.iter, by = 25))
     set.param("post.adjust", TRUE)
     set.param("parallel.cores", TRUE)
+    set.param("parallel.cores.motif", TRUE)
     set.param("pareto.adjust.scalings", TRUE)
     set.param("max.changes", c(rows = 0.5, cols = 5))
     set.param("cluster.rows.allowed", c(3, 70))
@@ -1309,6 +1309,8 @@ function (env, dont.update = F, ...)
                 stopCluster(cl)
         }
     }
+    if (!dont.update) 
+        env$iter <- env$iter + 1
     invisible(env)
 }
 cmonkey.re.seed <-
@@ -2518,6 +2520,8 @@ function (fetch.predicted.operons = "microbes.online", org.id = genome.info$org.
             err <- dlf(fname, paste("http://www.microbesonline.org/operons/gnc", 
                 taxon.id, ".named", sep = ""))
         }
+        if (file.exists(fname)) 
+            cat("Succesfully fetched operon predictions. Parsing...\n")
         ops <- read.delim(gzfile(fname))
         ops2 <- subset(ops, bOp == "TRUE" & SysName1 != "" & 
             SysName2 != "")
@@ -3556,7 +3560,7 @@ function (ks = 1:k.clust, seq.type = "upstream meme", verbose = T,
     debug = F, ...) 
 {
     out.ms <- meme.scores[[seq.type]]
-    mc <- get.parallel(length(ks), verbose = T)
+    mc <- get.parallel(length(ks), verbose = T, para.cores = get("parallel.cores.motif"))
     if (any(grepl("foreach", deparse(mc$apply))) && getDoParName() == 
         "doMC") 
         mc$apply <- function(list, FUN, ...) foreach(l = list, 
@@ -3760,7 +3764,7 @@ function (k, w.motifs = T, all.conds = F, title = NULL, o.genes = NULL,
         c$name <- title
     if (!dont.plot) {
         plotCluster.motif(c, seqs = c$seqs, p.val.shade.cutoff = 1, 
-            o.genes = o.genes, ...)
+            o.genes = o.genes, no.plotCluster = !all.conds, ...)
         if (!"layout" %in% names(list(...))) 
             par(opar)
     }
@@ -5452,8 +5456,6 @@ function (env)
             for (j in c("all.pv", "all.ev")) {
                 if (!is.null(env$meme.scores[[i]][[j]]) && "ff" %in% 
                   class(env$meme.scores[[i]][[j]])) {
-                  if (is.null(tmp[[i]])) 
-                    tmp[[i]] <- list()
                   env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
                     ]
                 }

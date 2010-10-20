@@ -13,7 +13,7 @@ cMonkey integrated biclustering algorithm for learning co-regulated gene modules
 Package: \tab cMonkey\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
-Date: \tab 2010-10-15\cr
+Date: \tab 2010-10-20\cr
 License: \tab GPL-2\cr
 LazyLoad: \tab yes\cr
 }

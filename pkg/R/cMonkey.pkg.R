@@ -1,7 +1,7 @@
 DATE <-
-"Wed Oct 20 15:16:28 2010"
+"Thu Nov  4 13:22:25 2010"
 VERSION <-
-"4.7.2"
+"4.7.3"
 .onLoad <-
 function( libname, pkgname ) { ##.onAttach
     message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
@@ -350,7 +350,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"4.7.2"
+"4.7.3"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -374,7 +374,6 @@ function (env = NULL, ...)
     while (env$iter <= env$n.iter) {
         iter <- env$iter
         env$cmonkey.one.iter(env)
-        env$iter <- env$iter + 1
     }
     if (!is.na(env$plot.iters) && (iter %in% env$plot.iters || 
         (iter - 1) %in% env$plot.iters)) 
@@ -390,6 +389,8 @@ function (env = NULL, ...)
     }
     parent.env(env) <- globalenv()
     parent.env(env$cmonkey.params) <- env
+    env$clusterStack <- env$get.clusterStack(ks = 1:env$k.clust, 
+        force = T)
     print(env$cluster.summary())
     env$set.param("time.ended", date(), env$cmonkey.params)
     env$time.ended <- date()
@@ -1811,7 +1812,7 @@ function (ks = 1:k.clust, force.row = F, force.col = F, force.motif = F,
         }
         else net.scores[, ks] <- 0
         tmp.nets <- list()
-        for (i in names(networks)) {
+        for (i in names(net.weights)) {
             if (net.weights[i] == 0 || is.na(net.weights[i])) 
                 next
             if (nrow(subset(networks[[i]], protein1 %in% attr(ratios, 
@@ -2602,41 +2603,47 @@ function (fetch.predicted.operons = "microbes.online", org.id = genome.info$org.
 get.parallel <-
 function (X = k.clust, verbose = F, para.cores = get("parallel.cores")) 
 {
-    try(has.multi <- require(multicore, quietly = T))
-    if (!has.multi || is.na(para.cores) || (is.logical(para.cores) && 
-        para.cores == FALSE) || (is.numeric(para.cores) && para.cores <= 
-        1) || (has.multi && multicore:::isChild())) {
+    if (is.na(para.cores) || (is.logical(para.cores) && para.cores == 
+        FALSE) || (is.numeric(para.cores) && para.cores <= 1)) {
         out <- list(mc = FALSE, par = para.cores, apply = lapply)
         if (verbose) 
             cat("NOT PARALLELIZING\n")
     }
     else {
-        mc <- has.multi && !multicore:::isChild() && X > 1 && 
-            !is.na(para.cores) && (is.numeric(para.cores) && 
-            para.cores > 1) || (is.logical(para.cores) && para.cores == 
-            TRUE)
-        par <- para.cores
-        out.apply <- lapply
-        if (mc) {
-            if (is.logical(par) && par == TRUE) 
-                par <- multicore:::detectCores(all.tests = TRUE)
-            par <- min(c(X, par, multicore:::detectCores(all.tests = TRUE)))
+        try(has.multi <- require(multicore, quietly = T))
+        if (!has.multi || (has.multi && multicore:::isChild())) {
+            out <- list(mc = FALSE, par = para.cores, apply = lapply)
             if (verbose) 
-                cat("PARALLELIZING:", par, ": ")
-            foreach.register.backend(par)
-            if (verbose) 
-                cat(getDoParName(), getDoParWorkers(), "\n")
-            out.apply <- function(list, FUN, ...) foreach(l = list) %dopar% 
-                {
-                  FUN(l, ...)
-                }
+                cat("NOT PARALLELIZING\n")
         }
         else {
-            par <- 1
-            if (verbose) 
-                cat("NOT PARALLELIZING:", par, "\n")
+            mc <- has.multi && !multicore:::isChild() && X > 
+                1 && !is.na(para.cores) && (is.numeric(para.cores) && 
+                para.cores > 1) || (is.logical(para.cores) && 
+                para.cores == TRUE)
+            par <- para.cores
+            out.apply <- lapply
+            if (mc) {
+                if (is.logical(par) && par == TRUE) 
+                  par <- multicore:::detectCores()
+                par <- min(c(X, par, multicore:::detectCores()))
+                if (verbose) 
+                  cat("PARALLELIZING:", par, ": ")
+                foreach.register.backend(par)
+                if (verbose) 
+                  cat(getDoParName(), getDoParWorkers(), "\n")
+                out.apply <- function(list, FUN, ...) foreach(l = list) %dopar% 
+                  {
+                    FUN(l, ...)
+                  }
+            }
+            else {
+                par <- 1
+                if (verbose) 
+                  cat("NOT PARALLELIZING:", par, "\n")
+            }
+            out <- list(mc = mc, par = par, apply = out.apply)
         }
-        out <- list(mc = mc, par = par, apply = out.apply)
     }
     if (is.numeric(out$par) && !is.na(out$par)) 
         options(cores = out$par)
@@ -3680,12 +3687,19 @@ function (iter, delta.iter = 200, delta.factor = 1, n.avg = 50,
     out.scaling
 }
 plotClust <-
-function (k, w.motifs = T, all.conds = F, title = NULL, o.genes = NULL, 
-    dont.plot = F, network = "all", short.names = organism == 
+function (k, cluster = NULL, w.motifs = T, all.conds = F, title = NULL, 
+    o.genes = NULL, dont.plot = F, network = "all", short.names = organism == 
         "sce", seq.type = names(mot.weights), ...) 
 {
     if (!dont.plot) 
         opar <- par(no.readonly = T)
+    if (!is.null(cluster)) {
+        if (!dont.plot) 
+            plotCluster.motif(cluster, seqs = cluster$seqs, p.val.shade.cutoff = 1, 
+                o.genes = o.genes, no.plotCluster = !all.conds, 
+                ...)
+        return(invisible(cluster))
+    }
     c <- get.clust(k, varNorm = F)
     rows <- get.rows(k)
     if (!is.null(o.genes)) 
@@ -3745,10 +3759,8 @@ function (k, w.motifs = T, all.conds = F, title = NULL, o.genes = NULL,
     else c$seqs <- NULL
     if (!is.na(net.iters[1])) {
         if (network == "all") 
-            network <- names(networks)
+            network <- names(net.weights)
         for (i in network) {
-            if (!i %in% names(networks)) 
-                next
             tmp.net <- networks[[i]][networks[[i]]$protein1 %in% 
                 rows & networks[[i]]$protein2 %in% rows, ]
             tmp.net <- cbind(tmp.net, net = rep(i, nrow(tmp.net)))
@@ -3863,7 +3875,7 @@ function (cluster, imag = F, cond.labels = F, o.genes = NULL,
                 col = "red")
     }
     else {
-        cmap <- col.func(cluster$nrow)
+        cmap <- col.func(cluster$nrows)
         matlines(1:length(cols.b), t(rats[cluster$rows, , drop = F]), 
             ylim = range.r, xlab = NA, ylab = NA, main = main, 
             col = cmap, lty = 1, ...)
@@ -4001,7 +4013,7 @@ function (cluster, imag = F, cond.labels = F, o.genes = NULL,
                 col = "red")
     }
     else {
-        cmap <- col.func(cluster$nrow)
+        cmap <- col.func(cluster$nrows)
         matlines(1:len.b, t(rats[cluster$rows, , drop = F]), 
             ylim = range.r, col = cmap, main = main, xlab = NA, 
             ylab = NA, lty = 1, ...)
@@ -4049,13 +4061,13 @@ function (cluster, seqs = cluster$seqs, layout = NULL, colors = NULL,
     if (any(!cluster$rows %in% attr(ratios, "rnames"))) {
         cluster$rows <- cluster$rows[cluster$rows %in% attr(ratios, 
             "rnames")]
-        cluster$nrow <- length(cluster$rows)
+        cluster$nrows <- length(cluster$rows)
         warning(cluster$k, ": Some cluster rows are not in the ratios. Will plot without these rows.\n")
     }
     if (any(!cluster$cols %in% attr(ratios, "cnames"))) {
         cluster$cols <- cluster$cols[cluster$cols %in% attr(ratios, 
             "cnames")]
-        cluster$ncol <- length(cluster$cols)
+        cluster$ncols <- length(cluster$cols)
         warning(cluster$k, ": Some cluster cols are not in the ratios. Will plot without these cols.\n")
     }
     seq.types <- cluster$seq.type

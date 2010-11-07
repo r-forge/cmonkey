@@ -1,7 +1,7 @@
 DATE <-
-"Thu Nov  4 13:22:25 2010"
+"Sun Nov  7 06:32:34 2010"
 VERSION <-
-"4.7.3"
+"4.7.4"
 .onLoad <-
 function( libname, pkgname ) { ##.onAttach
     message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
@@ -10,10 +10,10 @@ function( libname, pkgname ) { ##.onAttach
     vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
     if ( class( vers ) != "try-error" ) {
       vers <- gsub( " ", "", vers )
-      if ( vers != VERSION ) message( "\nWARNING: You are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website." )
-      else message( "Congratulations! You are using the latest version of cMonkey.\n" )
+      if ( vers != VERSION ) cat( "\nYou are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website.", sep="" )
+      else cat( "Congratulations! You are using the latest version of cMonkey.\n" )
     } else {
-      message( "WARNING: Could not check to see if you are using the latest version of cMonkey." )
+      cat( "Could not check to see if you are using the latest version of cMonkey." )
     }
   }
 
@@ -43,18 +43,6 @@ function (env, ks = 1:env$k.clust, force.motif = T, ...)
     env$net.scores <- tmp$n[, ]
     env$col.scores <- tmp$c[, ]
     env$meme.scores <- tmp$ms
-    for (i in names(env$meme.scores)) {
-        for (j in c("all.pv", "all.ev")) {
-            if (!is.null(env$meme.scores[[i]][[j]]) && "ff" %in% 
-                class(env$meme.scores[[i]][[j]])) {
-                if (is.null(tmp[[i]])) 
-                  tmp[[i]] <- list()
-                tmp[[i]][[j]] <- env$meme.scores[[i]][[j]]
-                env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
-                  ]
-            }
-        }
-    }
     env$row.memb <- t(apply(env$row.membership, 1, function(i) 1:k.clust %in% 
         i))
     env$col.memb <- t(apply(env$col.membership, 1, function(i) 1:k.clust %in% 
@@ -350,7 +338,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"4.7.3"
+"4.7.4"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -383,8 +371,6 @@ function (env = NULL, ...)
     if (env$post.adjust == TRUE) {
         env$pre.adjusted.row.membership <- env$row.membership
         env$adjust.all.clusters(env)
-        if (env$big.matrices > 0) 
-            env$ffify.env(env)
         gc()
     }
     parent.env(env) <- globalenv()
@@ -403,13 +389,7 @@ function (env = NULL, ...)
     if (!exists("cmonkey.params")) {
         cmonkey.params <- new.env(hash = T)
     }
-    if (file.exists("cmonkey-funcs.R")) {
-        tmp.e <- new.env(hash = T)
-        sys.source("cmonkey-funcs.R", envir = tmp.e)
-    }
-    else {
-        tmp.e <- environment(cMonkey:::cmonkey)
-    }
+    tmp.e <- environment(cMonkey:::cmonkey)
     if (!is.null(env) && (is.list(env) || is.environment(env))) {
         for (i in names(env)) assign(i, env[[i]])
         if (is.list(env)) 
@@ -507,8 +487,6 @@ function (env = NULL, ...)
     set.param("net.iters", seq(1, n.iter, by = 7))
     set.param("row.scaling", 1)
     set.param("row.weights", c(ratios = 1))
-    set.param("row.score.func", "orig")
-    set.param("col.score.func", "orig")
     set.param("mot.scaling", seq(0, 1, length = n.iter/2))
     set.param("mot.weights", c(`upstream meme` = 1))
     set.param("net.scaling", seq(0, 0.5, length = n.iter/2))
@@ -547,9 +525,6 @@ function (env = NULL, ...)
         sep = "/"))
     set.param("mast.cmd", sprintf("%s/mast $memeOutFname -d $fname -bfile $bgFname -nostatus -stdout -text -brief -ev 99999 -mev 99999 -mt 0.99 -seqp -remcorr", 
         progs.dir))
-    set.param("weeder.cmd", "./weederlauncher.out %s %s %s S T%d")
-    set.param("spacer.cmd", c("java -Xmx1000M -Xshare:off -jar SPACER.jar -b %s -o %s %s", 
-        "java -Xmx1000M -Xshare:off -jar SPACER.jar -l %s -o %s %s"))
     set.param("dust.cmd", sprintf("%s/dust $fname", progs.dir))
     set.param("operon.shift", TRUE)
     set.param("bg.order", 3)
@@ -579,7 +554,6 @@ function (env = NULL, ...)
     options(op)
     rm(op)
     set.seed(rnd.seed)
-    set.param("big.matrices", 50 * 2^20)
     if (!exists("rsat.species") || rsat.species == "?" || is.na(rsat.species)) {
         err <- dlf("data/KEGG/KEGG_taxonomy.txt", "ftp://ftp.genome.jp/pub/kegg/genes/taxonomy")
         if (class(err) != "try-error") {
@@ -1292,8 +1266,6 @@ function (env, dont.update = F, ...)
             }
         }
     }
-    if (big.matrices > 0) 
-        ffify.env(env)
     if (get.parallel()$par) {
         if (getDoParName() == "doMC") {
             chld <- multicore::children()
@@ -1418,37 +1390,6 @@ function (v, n = n.iter)
     if (length(v) < n) 
         v <- c(v, rep(v[length(v)], n.iter - length(v)))
     v
-}
-ffify.env <-
-function (env) 
-{
-    for (i in c("row.scores", "mot.scores", "net.scores", "r.scores", 
-        "rr.scores", "col.scores", "c.scores", "cc.scores", "net.scores", 
-        "row.memb", "col.memb")) {
-        if (!is.null(env[[i]]) && object.size(env[[i]]) >= env$big.matrices && 
-            !"ff" %in% class(env[[i]])) {
-            if (!file.exists(env$cmonkey.filename)) 
-                dir.create(env$cmonkey.filename, recursive = T, 
-                  show = F)
-            require(ff)
-            env[[i]] <- as.ff(env[[i]], filename = paste(env$cmonkey.filename, 
-                i, sep = "/"), overwrite = T)
-        }
-    }
-    for (i in names(env$meme.scores)) {
-        for (j in c("all.pv", "all.ev")) {
-            all.pv <- env$meme.scores[[i]][[j]]
-            if (!is.null(all.pv) && object.size(all.pv) >= env$big.matrices && 
-                !is.ff(all.pv)) {
-                if (!file.exists(env$cmonkey.filename)) 
-                  dir.create(env$cmonkey.filename, recursive = T, 
-                    show = F)
-                env$meme.scores[[i]][[j]] <- as.ff(all.pv, filename = paste(env$cmonkey.filename, 
-                  "/", j, ".", i, sep = ""), overwrite = T)
-            }
-        }
-    }
-    invisible(env)
 }
 filter.sequences <-
 function (seqs, start.stops = NULL, seq.type = paste(c("upstream", 
@@ -1812,7 +1753,7 @@ function (ks = 1:k.clust, force.row = F, force.col = F, force.motif = F,
         }
         else net.scores[, ks] <- 0
         tmp.nets <- list()
-        for (i in names(net.weights)) {
+        for (i in names(networks)) {
             if (net.weights[i] == 0 || is.na(net.weights[i])) 
                 next
             if (nrow(subset(networks[[i]], protein1 %in% attr(ratios, 
@@ -3639,15 +3580,6 @@ function (k, seq.type = "upstream meme", verbose = F, ...)
     if (st[2] == "meme") 
         out <- meme.one.cluster(k, seq.type = seq.type, verbose, 
             ...)
-    else if (st[2] == "weeder") 
-        out <- weeder.one.cluster(k, seq.type = seq.type, verbose = verbose, 
-            n.motifs = 5, ...)
-    else if (st[2] %in% c("spacer", "prism")) 
-        out <- spacer.one.cluster(k, seq.type = seq.type, verbose = verbose, 
-            ...)
-    else if (st[2] == "cosmo") 
-        out <- cosmo.one.cluster(k, seq.type = seq.type, verbose = verbose, 
-            n.motifs = 1, ...)
     invisible(out)
 }
 my.tempfile <-
@@ -3759,8 +3691,10 @@ function (k, cluster = NULL, w.motifs = T, all.conds = F, title = NULL,
     else c$seqs <- NULL
     if (!is.na(net.iters[1])) {
         if (network == "all") 
-            network <- names(net.weights)
+            network <- names(networks)
         for (i in network) {
+            if (!i %in% names(networks)) 
+                next
             tmp.net <- networks[[i]][networks[[i]]$protein1 %in% 
                 rows & networks[[i]]$protein2 %in% rows, ]
             tmp.net <- cbind(tmp.net, net = rep(i, nrow(tmp.net)))
@@ -4161,7 +4095,8 @@ function (cluster, seqs = cluster$seqs, layout = NULL, colors = NULL,
             xlab = "", ylab = "")
         n.plotted <- n.plotted + 1
     }
-    suppressWarnings(plotCluster.network(cluster, ...))
+    suppressWarnings(cluster <- plotCluster.network(cluster, 
+        ...))
     if (is.null(seqs)) {
         seqs <- rep("", length(cluster$rows))
         names(seqs) <- cluster$rows
@@ -4195,6 +4130,7 @@ function (cluster, seqs = cluster$seqs, layout = NULL, colors = NULL,
         xpd = NA, cex = 1)
     text(2.35, 0, paste("cMonkey Version", cmonkey.version, organism), 
         srt = 90, xpd = NA, cex = 1)
+    invisible(cluster)
 }
 plotCluster.network <-
 function (cluster, network = "all", o.genes = NULL, colors = NULL, 
@@ -4339,6 +4275,7 @@ function (cluster, network = "all", o.genes = NULL, colors = NULL,
                 cex = 10/3)
         }
     }
+    cluster
 }
 plotClusterMotifPositions <-
 function (cluster, seqs = cluster$seqs, long.names = T, shade = T, 
@@ -4894,7 +4831,7 @@ function (iter = stats$iter[nrow(stats)], plot.clust = NA, new.dev = T,
                 dev.new()
             dev.set(3)
         }
-        try(plotClust(plot.clust, T, cex = 0.7), silent = T)
+        try(plotClust(plot.clust, w.motifs = T, cex = 0.7), silent = T)
         if (new.dev) {
             if (length(dev.list()) < 3) 
                 dev.new()
@@ -5163,35 +5100,6 @@ function (sgenes, seqs, cmd = meme.cmd["upstream meme"], bgseqs = NULL,
         unlink(c(fname, bgfname, sprintf("%s.psp", fname)))
     return(output)
 }
-save.cmonkey.env <-
-function (env = NULL, file = NULL, restore = T, verbose = T) 
-{
-    if (is.null(env)) {
-        for (i in ls(env = globalenv())) if (is.environment(get(i, 
-            globalenv())) && "cmonkey" %in% class(get(i, globalenv()))) 
-            save.cmonkey.env(get(i, globalenv()), file, restore)
-        return(invisible())
-    }
-    tmp <- list()
-    if (is.null(file)) 
-        file <- paste(env$cmonkey.filename, ".RData", sep = "")
-    un.ffify.env(env)
-    cat("Saving environment to", file, "\n")
-    save.image(file)
-    if (length(tmp) > 0 && restore && env$big.matrices > 0) {
-        for (i in c("row.scores", "mot.scores", "net.scores", 
-            "r.scores", "rr.scores", "col.scores", "net.scores", 
-            "row.memb", "col.memb")) if (!is.null(tmp[[i]])) 
-            env[[i]] <- tmp[[i]]
-        for (i in names(env$meme.scores)) {
-            if (is.null(tmp[[i]])) 
-                next
-            for (j in c("all.pv", "all.ev")) if (!is.null(tmp[[i]][[j]])) 
-                env$meme.scores[[i]][[j]] <- tmp[[i]][[j]]
-        }
-    }
-    invisible(env)
-}
 seed.clusters <-
 function (k.clust, seed.method = "rnd", col.method = "rnd") 
 {
@@ -5204,7 +5112,8 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
     }
     if (seed.method == "rnd") {
         row.membership <- t(sapply(1:attr(ratios, "nrow"), function(i) sample(1:k.clust, 
-            n.clust.per.row[1])))
+            n.clust.per.row[1], replace = n.clust.per.row[1] > 
+                attr(ratios, "nrow"))))
     }
     else if (substr(seed.method, 1, 5) == "list=") {
         row.membership <- matrix(0, nrow = attr(ratios, "nrow"), 
@@ -5259,20 +5168,6 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
         tmp.rat[is.na(tmp.rat)] <- 0
         row.membership <- kmeans(tmp.rat, centers = k.clust, 
             iter.max = 20, nstart = 2)$cluster
-        if (n.clust.per.row[1] > 1) 
-            row.membership <- cbind(row.membership, matrix(rep(0, 
-                attr(ratios, "nrow") * (n.clust.per.row[1] - 
-                  1), ncol = n.clust.per.row[1] - 1)))
-    }
-    else if (substr(seed.method, 1, 11) == "trimkmeans=") {
-        if (!exists("ratios")) 
-            stop("trimkmeans seed method but no ratios")
-        require(trimcluster)
-        trim <- as.numeric(strsplit(seed.method, "=")[[1]][2])
-        tmp.rat <- get.cluster.matrix()
-        tmp.rat[is.na(tmp.rat)] <- 0
-        row.membership <- trimkmeans(tmp.rat, k.clust, trim = trim, 
-            maxit = 20, runs = 2)$classification
         if (n.clust.per.row[1] > 1) 
             row.membership <- cbind(row.membership, matrix(rep(0, 
                 attr(ratios, "nrow") * (n.clust.per.row[1] - 
@@ -5354,51 +5249,6 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
         })
         row.membership <- do.call(cbind, tmp)
     }
-    else if (substr(seed.method, 1, 7) == "netcor=") {
-        if (!exists("ratios")) 
-            stop("netcor seed method but no ratios")
-        if (!exists("networks") || length(networks) <= 0) 
-            stop("netcor seed method but no networks")
-        seed.method <- strsplit(seed.method, "=")[[1]][2]
-        net.name <- strsplit(seed.method, ":")[[1]][1]
-        net <- networks[[net.name]]
-        n.seed <- as.integer(strsplit(seed.method, ":")[[1]][2])
-        rats <- get.cluster.matrix()
-        cors <- cor(t(rats), use = "pairwise")
-        tmp.mat <- matrix(0, nrow = nrow(cors), ncol = ncol(cors))
-        dimnames(tmp.mat) <- dimnames(cors)
-        tmp.lookup <- 1:attr(ratios, "nrow")
-        names(tmp.lookup) <- attr(ratios, "rnames")
-        net <- net[as.character(net$protein1) %in% attr(ratios, 
-            "rnames") & as.character(net$protein2) %in% attr(ratios, 
-            "rnames"), ]
-        tmp.mat[cbind(tmp.lookup[as.character(net$protein1)], 
-            tmp.lookup[as.character(net$protein2)])] <- net$combined_score/1000
-        cors <- cors + tmp.mat
-        rm(tmp.mat)
-        rm <- rep(0, attr(ratios, "nrow"))
-        names(rm) <- attr(ratios, "rnames")
-        sampled <- rep(FALSE, attr(ratios, "nrow"))
-        names(sampled) <- attr(ratios, "rnames")
-        mc <- get.parallel(n.clust.per.row)
-        tmp <- mc$apply(1:n.clust.per.row, function(i) {
-            for (k in 1:k.clust) {
-                if (sum(!sampled) < n.seed) 
-                  sampled[sample(1:length(sampled))] <- FALSE
-                rnames <- attr(ratios, "rnames")[!sampled]
-                g <- sample(rnames, 1)
-                g <- rnames[order(cors[g, !sampled], decreasing = T)[1:n.seed]]
-                rm[g] <- k
-                if (length(g) == 1) {
-                  tmp <- rnames[order(cors[g, !sampled], decreasing = T)[1:10]]
-                  sampled[tmp] <- TRUE
-                }
-                sampled[g] <- TRUE
-            }
-            rm[attr(ratios, "rnames")]
-        })
-        row.membership <- do.call(cbind, tmp)
-    }
     if (is.vector(row.membership)) 
         row.membership <- t(row.membership)
     if (nrow(row.membership) == 1) 
@@ -5406,7 +5256,8 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
     rownames(row.membership) <- attr(ratios, "rnames")
     if (col.method == "rnd") {
         col.membership <- t(sapply(1:attr(ratios, "ncol"), function(i) sample(1:k.clust, 
-            n.clust.per.col[1], replace = F)))
+            n.clust.per.col[1], replace = n.clust.per.col[1] > 
+                attr(ratios, "ncol"))))
     }
     else if (col.method == "best") {
         if (!exists("ratios")) 
@@ -5452,29 +5303,6 @@ function (cmd, tlimit = 600)
 {
     out <- readLines(pipe(cmd, "rt"))
     out
-}
-un.ffify.env <-
-function (env) 
-{
-    if (env$big.matrices > 0 && ("package:ff" %in% search())) {
-        for (i in c("row.scores", "mot.scores", "net.scores", 
-            "r.scores", "rr.scores", "col.scores", "net.scores", 
-            "cc.scores", "row.memb", "col.memb")) {
-            if (!is.null(env[[i]]) && "ff" %in% class(env[[i]])) {
-                env[[i]] <- env[[i]][, ]
-            }
-        }
-        for (i in names(env$meme.scores)) {
-            for (j in c("all.pv", "all.ev")) {
-                if (!is.null(env$meme.scores[[i]][[j]]) && "ff" %in% 
-                  class(env$meme.scores[[i]][[j]])) {
-                  env$meme.scores[[i]][[j]] <- env$meme.scores[[i]][[j]][, 
-                    ]
-                }
-            }
-        }
-    }
-    invisible(env)
 }
 update.cmonkey.env <-
 function (object, ...) 
@@ -5668,7 +5496,8 @@ function (ks = sapply(clusterStack, "[[", "k"), out.dir = NULL,
                 devSVGTips(sprintf("%s/svgs/cluster%04d.svg", 
                   out.dir, k), toolTipMode = 2, title = sprintf("Bicluster %04d", 
                   k), xmlHeader = T)
-                plotClust(k, T, seq.type = seq.type, ...)
+                plotClust(k, w.motifs = T, seq.type = seq.type, 
+                  ...)
                 dev.off()
             })
         }
@@ -5689,7 +5518,8 @@ function (ks = sapply(clusterStack, "[[", "k"), out.dir = NULL,
                   k))
             else cairo_pdf(sprintf("%s/pdfs/cluster%04d.pdf", 
                 out.dir, k))
-            try(plotClust(k, T, seq.type = seq.type, ...))
+            try(plotClust(k, w.motifs = T, seq.type = seq.type, 
+                ...))
             dev.off()
         })
         cat("\n")

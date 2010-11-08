@@ -1,19 +1,19 @@
 DATE <-
-"Sun Nov  7 06:32:34 2010"
+"Mon Nov  8 10:10:34 2010"
 VERSION <-
 "4.7.4"
 .onLoad <-
 function( libname, pkgname ) { ##.onAttach
-    message( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
-    message( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
-    message( "http://baliga.systemsbiology.net/cmonkey" )
+    packageStartupMessage( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
+    packageStartupMessage( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
+    packageStartupMessage( "http://baliga.systemsbiology.net/cmonkey" )
     vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
     if ( class( vers ) != "try-error" ) {
       vers <- gsub( " ", "", vers )
-      if ( vers != VERSION ) cat( "\nYou are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website.", sep="" )
-      else cat( "Congratulations! You are using the latest version of cMonkey.\n" )
+      if ( vers != VERSION ) packageStartupMessage( "\nYou are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website." )
+      else packageStartupMessage( "Congratulations! You are using the latest version of cMonkey.\n" )
     } else {
-      cat( "Could not check to see if you are using the latest version of cMonkey." )
+      packageStartupMessage( "Could not check to see if you are using the latest version of cMonkey." )
     }
   }
 
@@ -391,7 +391,8 @@ function (env = NULL, ...)
     }
     tmp.e <- environment(cMonkey:::cmonkey)
     if (!is.null(env) && (is.list(env) || is.environment(env))) {
-        for (i in names(env)) assign(i, env[[i]])
+        for (i in names(env)) if (!i %in% names(list(...))) 
+            assign(i, env[[i]])
         if (is.list(env)) 
             env <- NULL
     }
@@ -5253,7 +5254,6 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
         row.membership <- t(row.membership)
     if (nrow(row.membership) == 1) 
         row.membership <- t(row.membership)
-    rownames(row.membership) <- attr(ratios, "rnames")
     if (col.method == "rnd") {
         col.membership <- t(sapply(1:attr(ratios, "ncol"), function(i) sample(1:k.clust, 
             n.clust.per.col[1], replace = n.clust.per.col[1] > 
@@ -5273,6 +5273,7 @@ function (k.clust, seed.method = "rnd", col.method = "rnd")
         col.membership <- t(apply(col.scores, 1, function(i) order(i, 
             decreasing = T)[1:n.clust.per.col[1]]))
     }
+    rownames(row.membership) <- attr(ratios, "rnames")
     rownames(col.membership) <- attr(ratios, "cnames")
     list(row.membership = row.membership, col.membership = col.membership)
 }

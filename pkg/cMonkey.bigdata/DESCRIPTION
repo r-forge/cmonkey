@@ -1,0 +1,10 @@
+Package: cMonkey.bigdata
+Type: Package
+Title: Additional example (big)data for use with the cMonkey integrated biclustering algorithm
+Version: 4.7.3
+Date: 2010-11-04
+Author: David J Reiss, Institute for Systems Biology
+Maintainer: David J Reiss <dreiss@systemsbiology.org>
+Description: Additional example (big)data for use with the cMonkey integrated biclustering algorithm
+License: GPL-2
+LazyLoad: yes

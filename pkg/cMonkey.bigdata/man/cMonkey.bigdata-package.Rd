@@ -13,7 +13,7 @@ Additional example (big)data for use with the cMonkey integrated biclustering al
 Package: \tab cMonkey.bigdata\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
-Date: \tab 2010-11-04\cr
+Date: \tab 2011-01-04\cr
 License: \tab GPL-2\cr
 LazyLoad: \tab yes\cr
 }
@@ -25,7 +25,7 @@ David J Reiss, Institute for Systems Biology
 Maintainer: \email{dreiss@systemsbiology.org}
 }
 \references{
-
+ 
 }
 \keyword{ package }
 \seealso{

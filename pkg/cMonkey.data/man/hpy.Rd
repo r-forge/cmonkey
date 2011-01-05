@@ -22,9 +22,7 @@ List of 7
   ..$ protein2      : Factor w/ 615 levels "HP0001","HP0002",..: 24 145 320 2 470 549 565 41 54 71 ...
   ..$ combined_score: num [1:1465] 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 ...
  $ cm.func.each.iter:function ()  
-  ..- attr(*, "source")= chr [1:2] "function(){if(!iter%in%plot.iters)return();fc<-clusters.w.func(\"flagell\");##flag.clusters();" ...
  $ favorite.cluster :function ()  
-  ..- attr(*, "source")= chr "function() which.max( clusters.w.func( \"flagell\" ) )"
  $ net.weights      : Named num [1:2] 1 1
   ..- attr(*, "names")= chr [1:2] "string" "pp.ints"
 }

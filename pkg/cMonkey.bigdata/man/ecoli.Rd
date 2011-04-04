@@ -102,7 +102,9 @@ List of 7
   .. ..$ : chr [1:4264] "b3241" "b3240" "b3243" "b3242" ...
   .. ..$ : chr [1:507] "GSM18264" "GSM18265" "GSM18266" "GSM18235" ...
  $ cm.func.each.iter:function ()  
+  ..- attr(*, "source")= chr [1:2] "function(){if(!iter%in%plot.iters)return();fc<-clusters.w.func(\"flagell\");##flag.clusters();" ...
  $ favorite.cluster :function ()  
+  ..- attr(*, "source")= chr "function() which.max( clusters.w.func( \"flagell\" ) )"
 }
 \details{
 ##  ## If necessary, more details than the __description__ above ##

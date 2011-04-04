@@ -10,9 +10,11 @@
 \usage{data(halo)}
 \format{
   The format is:
-List of 9
+List of 11
  $ organism         : chr "hal"
  $ cog.org          : chr "Hbs"
+ $ rsat.species     : chr "Halobacterium_sp"
+ $ taxon.id         : num 64091
  $ k.clust          : num 250
  $ ratios           : num [1:2072, 1:268] 0.271 0.564 0.37 -1.046 -0.486 ...
   ..- attr(*, "dimnames")=List of 2
@@ -23,7 +25,9 @@ List of 9
   ..$ V2: Factor w/ 147 levels "VNG7002","VNG7003",..: 1 2 3 4 5 6 7 8 9 10 ...
  $ bat.clust.genes  : chr [1:30] "VNG0654C" "VNG0656H" "VNG0828H" "VNG0829G" ...
  $ cm.func.each.iter:function ()  
+  ..- attr(*, "source")= chr [1:2] "function(){if(!iter%in%plot.iters)return();fc<-clusters.w.genes(bat.clust.genes);" ...
  $ favorite.cluster :function ()  
+  ..- attr(*, "source")= chr "function() which.max( clusters.w.genes( bat.clust.genes ) )"
  $ net.weights      : Named num 1
   ..- attr(*, "names")= chr "string"
 }

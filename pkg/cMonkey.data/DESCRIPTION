@@ -1,8 +1,8 @@
 Package: cMonkey.data
 Type: Package
 Title: Additional example data sets for use with the cMonkey integrated biclustering algorithm
-Version: 4.8.0
-Date: 2011-01-04
+Version: 4.8.4
+Date: 2011-04-04
 Author: David J Reiss, Institute for Systems Biology
 Maintainer: David J Reiss <dreiss@systemsbiology.org>
 Description: Additional example data sets for use with the cMonkey integrated biclustering algorithm

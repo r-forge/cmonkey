@@ -1,7 +1,7 @@
 DATE <-
-"Thu May 26 11:35:20 2011"
+"Tue Jun 28 21:16:19 2011"
 VERSION <-
-"4.8.5"
+"4.8.7"
 .onLoad <-
 function( libname, pkgname ) { ##.onAttach
     packageStartupMessage( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
@@ -187,12 +187,9 @@ function (k, rats.inds = "COMBINED", varNorm = F, in.cols = T,
         d.rows <- rowMeans(rats, na.rm = T)
         d.cols <- colMeans(rats, na.rm = T)
         d.all <- mean(d.rows, na.rm = T)
-        rij <- rats + d.all
-        rij[, ] <- rij[, ] - matrix(d.cols, nrow = nrow(rij), 
-            ncol = ncol(rij), byrow = T)
-        rij[, ] <- rij[, ] - matrix(d.rows, nrow = nrow(rij), 
-            ncol = ncol(rij), byrow = F)
-        average.r <- mean(abs(rij), na.rm = TRUE)
+        rats[, ] <- rats[, ] + d.all - outer(d.rows, d.cols, 
+            "+")
+        average.r <- mean(abs(rats), na.rm = TRUE)
         if (varNorm && !is.null(maxRowVar)) {
             row.var <- mean(apply(rats, 1, var, use = "pairwise.complete.obs"), 
                 na.rm = T)
@@ -205,12 +202,13 @@ function (k, rats.inds = "COMBINED", varNorm = F, in.cols = T,
     inds <- rats.inds
     if (rats.inds[1] == "COMBINED") 
         inds <- names(get("row.weights"))
+    rows <- get.rows(k)
+    cols <- get.cols(k)
     resids <- sapply(ratios[inds], function(rn) {
         if (in.cols) 
-            residual.submatrix(rn, get.rows(k), get.cols(k), 
-                varNorm = varNorm)
+            residual.submatrix(rn, rows, cols, varNorm = varNorm)
         else residual.submatrix(rn, get.rows(k), colnames(rn)[!colnames(rn) %in% 
-            get.cols(k)], varNorm = varNorm)
+            cols], varNorm = varNorm)
     })
     if (rats.inds[1] == "COMBINED") 
         resids <- weighted.mean(resids, row.weights[inds], na.rm = T)
@@ -244,21 +242,21 @@ function (e.cutoff = 0.01, nrow.cutoff = 5, seq.type = names(mot.weights)[1],
     out <- data.frame(k = 1:k.clust, nrow = nrow, score = score, 
         resid = sapply(1:k.clust, cluster.resid, varNorm = F), 
         consensus1 = sapply(1:k.clust, function(k) if (is.null(ms) || 
-            length(ms[[k]]) <= 3) 
+            is.null(ms[[k]]$meme.out) || length(ms[[k]]) <= 3) 
             ""
         else pssm.to.string(ms[[k]]$meme.out[[1]]$pssm)), e.value1 = sapply(1:k.clust, 
-            function(k) if (is.null(ms) || length(ms[[k]]) <= 
-                3) 
+            function(k) if (is.null(ms) || is.null(ms[[k]]$meme.out) || 
+                length(ms[[k]]) <= 3) 
                 Inf
             else ms[[k]]$meme.out[[1]]$e.value), consensus2 = sapply(1:k.clust, 
-            function(k) if (is.null(ms) || length(ms[[k]]) <= 
-                3) 
+            function(k) if (is.null(ms) || is.null(ms[[k]]$meme.out) || 
+                length(ms[[k]]) <= 3) 
                 ""
             else if (length(ms[[k]]$meme.out) == 1) 
                 ""
             else pssm.to.string(ms[[k]]$meme.out[[2]]$pssm)), 
         e.value2 = sapply(1:k.clust, function(k) if (is.null(ms) || 
-            length(ms[[k]]) <= 3) 
+            is.null(ms[[k]]$meme.out) || length(ms[[k]]) <= 3) 
             Inf
         else if (length(ms[[k]]$meme.out) <= 1) 
             Inf
@@ -324,7 +322,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"4.8.5"
+"4.8.7"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -453,6 +451,9 @@ function (env = NULL, ...)
             colnames))))
         attr(ratios, "nrow") <- length(attr(ratios, "rnames"))
         attr(ratios, "ncol") <- length(attr(ratios, "cnames"))
+        if (is.null(names(ratios))) 
+            names(ratios) <- paste("ratios", 1:length(ratios), 
+                sep = ".")
         for (n in names(ratios)) {
             attr(ratios[[n]], "maxRowVar") <- mean(apply(ratios[[n]][, 
                 ], 1, var, use = "pair"), na.rm = T)
@@ -461,6 +462,8 @@ function (env = NULL, ...)
         }
         rm(n)
     }
+    if (exists("ratios") && is.null(names(ratios))) 
+        names(ratios) <- paste("ratios", 1:length(ratios), sep = ".")
     if (!is.null(env) && exists("ratios")) 
         assign("ratios", ratios, envir = env)
     set.param("cog.org", "?")
@@ -511,7 +514,8 @@ function (env = NULL, ...)
         system.file(package = "cMonkey")))) {
         set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
     }
-    else {
+    else if (any(mot.scaling > 0) && (!exists("no.genome.info") || 
+        !no.genome.info)) {
         message("WARNING: You do not have meme/mast/dust installed.\nTrying to install it now.\n")
         install.binaries()
         set.param("progs.dir", sprintf("%s/progs/", system.file(package = "cMonkey")))
@@ -519,7 +523,7 @@ function (env = NULL, ...)
             system.file(package = "cMonkey")))) 
             message("WARNING: Could not install meme. Please see the website for installation instructions.")
     }
-    set.param("meme.cmd", paste(progs.dir, "meme $fname -bfile $bgFname -psp $pspFname -time 600 -dna -revcomp -maxsize 9999999 -nmotifs %1$d -evt 1e9 -minw 6 -maxw 24 -mod zoops -nostatus -text -cons $none -pal=non", 
+    set.param("meme.cmd", paste(progs.dir, "meme $fname -bfile $bgFname -psp $pspFname -time 600 -dna -revcomp -maxsize 9999999 -nmotifs %1$d -evt 1e9 -minw 6 -maxw 24 -mod zoops -nostatus -text -cons $none", 
         sep = "/"))
     set.param("mast.cmd", sprintf("%s/mast $memeOutFname -d $fname -bfile $bgFname -nostatus -stdout -text -brief -ev 99999 -mev 99999 -mt 0.99 -seqp -remcorr", 
         progs.dir))
@@ -738,16 +742,15 @@ function (env = NULL, ...)
             if (!is.null(env)) 
                 assign("genome.info", genome.info, envir = env)
         }
-        if (exists("genome.info") && !is.null(genome.info$feature.names) && 
-            (!exists("ratios") || is.null(ratios))) 
+        if (exists("ratios") && !is.null(ratios)) 
+            tmp <- toupper(attr(ratios, "rnames"))
+        else if (exists("genome.info") && !is.null(genome.info$feature.names)) {
             tmp <- toupper(subset(genome.info$feature.names, 
                 type == "primary", select = "names", drop = T))
-        else if (!no.genome.info) 
-            tmp <- toupper(subset(genome.info$feature.names, 
-                type == "primary" | names %in% attr(ratios, "rnames"), 
-                select = "names", drop = T))
-        else if (exists("ratios") && !is.null(ratios)) 
-            tmp <- toupper(attr(ratios, "rnames"))
+            if (exists("ratios") && !is.null(ratios)) 
+                tmp <- tmp[toupper(tmp) %in% toupper(attr(ratios, 
+                  "rnames"))]
+        }
         qqq <- sapply(1:4, function(nch) max(table(substr(tmp, 
             1, nch)))/length(tmp))
         nch <- 0
@@ -790,7 +793,7 @@ function (env = NULL, ...)
             cat("Ratios: ", attr(ratios, "nrow"), "x", 1, "\n")
         }
         rm(nch, prefix, tmp, qqq)
-        if (!is.null(genome.info$genome.seqs)) {
+        if (!no.genome.info && length(mot.weights) > 0) {
             genome.info$all.upstream.seqs <- genome.info$bg.list <- list()
             genome.info$bg.fname <- character()
             for (i in names(mot.weights)) {
@@ -836,13 +839,19 @@ function (env = NULL, ...)
                   else {
                     cat("Loading STRING network.\n")
                     string <- get.STRING.links(genome.info$org.id$V1[1])
+                  }
+                  if (!is.null(string) && nrow(string) > 0) {
                     cat("Read in", nrow(string), "STRING edges; weight =", 
                       net.weights["string"], "\n")
+                    string$combined_score <- string$combined_score/max(string$combined_score, 
+                      na.rm = T) * 1000
+                    string$combined_score <- 1000 * exp(string$combined_score/1000)/exp(1)
+                    networks[["string"]] <- string
                   }
-                  string$combined_score <- string$combined_score/max(string$combined_score, 
-                    na.rm = T) * 1000
-                  string$combined_score <- 1000 * exp(string$combined_score/1000)/exp(1)
-                  networks[["string"]] <- string
+                  else {
+                    warning("Could not load STRING network. Either", 
+                      organism, "is not there or your gene names are not standard.")
+                  }
                   rm(string)
                 }
             }
@@ -866,10 +875,12 @@ function (env = NULL, ...)
                     data.frame(protein1 = tmp.sif[, 1], protein2 = tmp.sif[, 
                       2], combined_score = rep(1000, nrow(tmp.sif)))
                   }))
-                out.sif$combined_score <- rep(1000, nrow(out.sif))
-                colnames(out.sif) <- c("protein1", "protein2", 
-                  "combined_score")
-                networks[["operons"]] <- out.sif
+                if (!is.null(out.sif) && nrow(out.sif) > 0) {
+                  out.sif$combined_score <- rep(1000, nrow(out.sif))
+                  colnames(out.sif) <- c("protein1", "protein2", 
+                    "combined_score")
+                  networks[["operons"]] <- out.sif
+                }
                 rm(tmp, mc, out.sif)
             }
             if (!is.null(env)) 
@@ -1080,8 +1091,8 @@ function (env = NULL, ...)
                 networks[[n]] <- nn
                 if (!is.null(env)) 
                   assign("networks", networks, envir = env)
+                rm(n, nn, nodes, dupes)
             }
-            rm(n, nn, nodes, dupes)
             if (length(networks) > 1) {
                 sums <- sapply(networks, function(n) sum(n$combined_score, 
                   na.rm = T))
@@ -1164,9 +1175,10 @@ function (env, dont.update = F, ...)
             backingpath = env$cmonkey.filename)
     }
     else {
-        env$row.memb[, ] <- t(apply(row.membership[], 1, function(i) 1:k.clust %in% 
+        inds <- 1:k.clust
+        env$row.memb[, ] <- t(apply(row.membership[], 1, function(i) inds %in% 
             i))
-        env$col.memb[, ] <- t(apply(col.membership[], 1, function(i) 1:k.clust %in% 
+        env$col.memb[, ] <- t(apply(col.membership[], 1, function(i) inds %in% 
             i))
     }
     tmp <- get.all.scores(...)
@@ -1247,10 +1259,6 @@ function (env, dont.update = F, ...)
         tmp <- get.updated.memberships()
         env$row.membership <- tmp$r
         env$col.membership <- tmp$c
-        if (!is.null(tmp)) {
-            env$row.membership <- tmp$r
-            env$col.membership <- tmp$c
-        }
         if (!is.na(plot.iters) && iter %in% plot.iters) {
             env$clusterStack <- get.clusterStack(ks = 1:k.clust)
             try(plotStats(iter, plot.clust = env$favorite.cluster(), 
@@ -1510,6 +1518,8 @@ function (org.id = genome.info$org.id$V1[1], all.genes = attr(ratios,
         err <- try(tmp <- unique(read.delim(file, head = F, sep = "")))
         if ("try-catch" %in% class(err)) 
             return(NULL)
+        if (!exists("tmp") || nrow(tmp) <= 0) 
+            return(NULL)
         tmp2 <- strsplit(as.character(tmp$V15), "[:|]", perl = T)
         tmp2a <- sapply(tmp2, function(i) which(i == score))
         tmp2b <- sapply(1:length(tmp2), function(i) if (length(tmp2a[[i]]) == 
@@ -1565,7 +1575,7 @@ function (org.id = genome.info$org.id$V1[1], all.genes = attr(ratios,
 }
 get.all.scores <-
 function (ks = 1:k.clust, force.row = F, force.col = F, force.motif = F, 
-    force.net = F, quantile.normalize = T) 
+    force.net = F, quantile.normalize = F) 
 {
     mc <- get.parallel(length(ks))
     if (force.row || (row.scaling[iter] > 0 && !is.na(row.iters[1]) && 
@@ -1805,14 +1815,13 @@ function (k, for.cols = "all", ratios = ratios[[1]], norm.method = c("mean",
         get.row.weights(rows, cols, ratios)
     else NA
     if (is.na(row.weights[1])) {
-        rats.mn <- matrix(colMeans(rats, na.rm = T), nrow = nrow(rats), 
-            ncol = ncol(rats), byrow = T)
+        rats.mn <- colMeans(rats, na.rm = T)
     }
     else {
-        rats.mn <- matrix(apply(rats, 2, weighted.mean, w = row.weights[rows], 
-            na.rm = T), ncol = ncol(rats), byrow = T)
+        rats.mn <- apply(rats, 2, weighted.mean, w = row.weights[rows], 
+            na.rm = T)
     }
-    rats[, ] <- (rats[, ] - rats.mn)^2
+    rats[, ] <- t(t(rats) - rats.mn)^2
     rats <- colMeans(rats, na.rm = T)
     var.norm <- 0.99
     if (norm.method == "all.colVars") {
@@ -1821,7 +1830,7 @@ function (k, for.cols = "all", ratios = ratios[[1]], norm.method = c("mean",
             var.norm <- all.colVars[for.cols]
     }
     else if (norm.method == "mean") {
-        var.norm <- abs(rats.mn[1, ])
+        var.norm <- abs(rats.mn)
     }
     rats <- rats/(var.norm + 0.01)
     rats
@@ -2049,8 +2058,27 @@ function (rows, op.shift = T, op.table = genome.info$operons,
                 "start_pos", "end_pos")]
         }
         else if (attr(op.table, "source") == "microbes.online") {
-            ops <- merge(ids, op.table, by.x = "names", by.y = "gene", 
-                all.x = T)
+            ops <- NULL
+            if (!any(ids$names %in% op.table$gene)) {
+                ids2 <- lapply(syns, function(s) s[s %in% op.table$gene])
+                if (all(sapply(ids2, length) < 1)) {
+                  warning("Could not find operon info for any input genes", 
+                    call. = F)
+                }
+                else {
+                  if (any(sapply(ids2, length) < 1)) 
+                    warning("Could not find operon info for all input genes", 
+                      call. = F)
+                  ids2 <- ids2[sapply(ids2, length) >= 1]
+                  ids2 <- sapply(ids2, "[", 1)
+                  ids2 <- data.frame(id = ids2, names = names(ids2))
+                  ops <- merge(ids2, op.table, by.x = "id", by.y = "gene", 
+                    all.x = T)
+                }
+            }
+            if (is.null(ops)) 
+                ops <- merge(ids, op.table, by.x = "names", by.y = "gene", 
+                  all.x = T)
             if (any(is.na(ops$head))) {
                 head <- as.character(ops$head)
                 head[is.na(head)] <- as.character(ops$names[is.na(head)])
@@ -2111,7 +2139,7 @@ function (fetch.upstream = F, fetch.predicted.operons = "rsat")
         taxon.id <- org.id$V1[1]
     cat("Organism taxon id:", taxon.id, "\n")
     closeAllConnections()
-    if (!no.genome.info) {
+    if (!no.genome.info && !all(grepl("file=", names(mot.weights)))) {
         fname <- paste("data/", rsat.species, "/feature.tab", 
             sep = "")
         use.cds <- FALSE
@@ -2192,33 +2220,31 @@ function (fetch.upstream = F, fetch.predicted.operons = "rsat")
             if (length(genome.seqs) <= 0) 
                 genome.seqs <- NULL
         }
-        if (exists("ratios") && !is.null(ratios)) {
-            cat("Gathering all \"standard\" orf names and other synonyms for all probe names...\n")
-            tmp <- get.synonyms(attr(ratios, "rnames"), feature.names, 
-                verbose = T)
-            is.bad <- sapply(names(tmp), function(i) length(tmp[[i]]) == 
-                0 || substr(tmp[[i]][1], 1, 5) == "Error")
-            if (sum(is.bad) > 0) {
-                cat("These", sum(is.bad), "probe names have no matching ORF annotation:\n")
-                print(names(which(is.bad)))
-            }
-            cat("Mean number of synonyms per probe:", mean(sapply(tmp, 
-                length), na.rm = T), "\n")
-            synonyms <- tmp
-            rm(tmp, is.bad)
+    }
+    synonyms <- NULL
+    if (exists("synonym.thesaurus")) {
+        cat("Loading synonym information from custom thesaurus...\n")
+        tmp <- read.csv(gzfile(synonym.thesaurus), header = F)
+        synonyms <- strsplit(toupper(as.character(tmp[, 2])), 
+            ";")
+        names(synonyms) <- toupper(as.character(tmp[, 1]))
+        rm(tmp)
+    }
+    else if (exists("ratios") && !is.null(ratios)) {
+        cat("Gathering all \"standard\" orf names and other synonyms for all probe names...\n")
+        synonyms <- get.synonyms(attr(ratios, "rnames"), feature.names, 
+            verbose = T)
+    }
+    if (!is.null(synonyms)) {
+        cat("Mean number of synonyms per probe:", mean(sapply(synonyms, 
+            length), na.rm = T), "\n")
+        is.bad <- sapply(names(synonyms), function(i) length(synonyms[[i]]) == 
+            0 || substr(synonyms[[i]][1], 1, 5) == "Error")
+        if (sum(is.bad) > 0) {
+            cat("These", sum(is.bad), "probe names have no matching ORF annotation:\n")
+            print(names(which(is.bad)))
         }
-        if (!is.na(mot.iters[1]) && fetch.upstream) {
-            fname <- paste("data/", rsat.species, "/upstream-noorf.fasta.gz", 
-                sep = "")
-            err <- dlf(fname, paste(genome.loc, rsat.species, 
-                "_upstream-noorf.fasta.gz", sep = ""), "Fetching upstream sequences from RSAT...")
-            upstream.noorf <- readLines(gzfile(fname))
-            fname <- paste("data/", rsat.species, "/upstream.fasta.gz", 
-                sep = "")
-            err <- dlf(fname, paste(genome.loc, rsat.species, 
-                "_upstream.fasta.gz", sep = ""))
-            upstream <- readLines(gzfile(fname))
-        }
+        rm(is.bad)
     }
     closeAllConnections()
     invisible(list(species = rsat.species, genome.seqs = genome.seqs, 
@@ -2339,7 +2365,7 @@ function (k, seq.type = "upstream meme", for.rows = "all")
 }
 get.network.scores <-
 function (k, net = networks$string, for.rows = "all", p1.col = "protein1", 
-    p2.col = "protein2", score.col = "combined_score") 
+    p2.col = "protein2", score.col = "combined_score", combine.func = sum) 
 {
     if (length(k) <= 0) 
         return(NULL)
@@ -2359,7 +2385,7 @@ function (k, net = networks$string, for.rows = "all", p1.col = "protein1",
     if (is.null(cons) || nrow(cons) <= 0) 
         return(rep(NA, length(for.rows)))
     tmp <- tapply(as.numeric(cons[[score.col]]), as.character(cons[[p2.col]]), 
-        sum, na.rm = T)/length(rows)
+        combine.func, na.rm = T)/length(rows)
     scores <- rep(NA, length(for.rows))
     names(scores) <- for.rows
     scores[names(tmp)] <- tmp
@@ -2572,15 +2598,13 @@ function (k, cols = get.cols(k), for.rows = "all", ratios = ratios[[1]],
         return(rep(NA, length(for.rows)))
     rats <- ratios[for.rows, cols, drop = F]
     rats.mn <- colMeans(rats[rows, , drop = F], na.rm = T)
-    rats.mn <- matrix(rats.mn, nrow = nrow(rats), ncol = ncol(rats), 
-        byrow = T)
-    rats[, ] <- (rats[, ] - rats.mn)^2
+    rats[, ] <- t(t(rats) - rats.mn)^2
     col.weights <- if (exists("get.col.weights")) 
         get.col.weights(rows, cols, ratios)
     else NA
     if (is.na(col.weights[1])) 
         rats <- rowMeans(rats, na.rm = T)
-    else rats <- apply(abs(rats), 1, weighted.mean, w = col.weights[cols], 
+    else rats <- apply(rats, 1, weighted.mean, w = col.weights[cols], 
         na.rm = T)
     rats <- log(rats + 1e-99)
     return(rats)
@@ -2612,12 +2636,34 @@ function (k, seq.type = paste(c("upstream", "upstream.noncod",
     if (is.na(seq.type) || strsplit(seq.type, " ")[[1]][1] == 
         "gene") 
         op.shift <- FALSE
-    seq.type <- seq.type
     n.seq.type <- strsplit(seq.type, " ")[[1]][1]
-    if (substr(seq.type, 1, 5) == "file=") {
-        seqs <- read.fasta(fname = strsplit(n.seq.type, "=")[[1]][2])
+    if (substr(n.seq.type, 1, 8) == "fstfile=") {
+        if (!is.null(genome.info$all.upstream.seqs[[seq.type]]) && 
+            length(genome.info$all.upstream.seqs[[seq.type]]) > 
+                0) {
+            seqs <- genome.info$all.upstream.seqs[[seq.type]]
+        }
+        else {
+            seqs <- read.fasta(fname = gzfile(strsplit(n.seq.type, 
+                "=")[[1]][2]))
+        }
         seqs <- seqs[rows]
-        names(seqs) <- rows
+        names(seqs) <- toupper(rows)
+    }
+    else if (substr(n.seq.type, 1, 8) == "csvfile=") {
+        if (!is.null(genome.info$all.upstream.seqs[[seq.type]]) && 
+            length(genome.info$all.upstream.seqs[[seq.type]]) > 
+                0) {
+            seqs <- genome.info$all.upstream.seqs[[seq.type]]
+        }
+        else {
+            tab <- read.csv(gzfile(strsplit(n.seq.type, "=")[[1]][2]), 
+                head = F)
+            seqs <- as.character(tab[, 2])
+            names(seqs) <- toupper(as.character(tab[, 1]))
+        }
+        seqs <- seqs[rows]
+        names(seqs) <- toupper(rows)
     }
     else {
         if (is.null(genome.info$feature.tab) || !"genome.seqs" %in% 
@@ -2790,17 +2836,18 @@ function (gns, ft = genome.info$feature.names, ignore.case = T,
         return(out)
     }
     out <- list()
-    if (!force && exists("genome.info") && !is.null(genome.info$synonyms)) {
+    if ((!force && exists("genome.info") && !is.null(genome.info$synonyms))) {
         gns.cached <- gns[gns %in% names(genome.info$synonyms)]
         out <- genome.info$synonyms[gns.cached]
         gns <- gns[!gns %in% names(genome.info$synonyms)]
-        if (length(gns) <= 0) 
+        if (length(gns) <= 0 || (is.null(ft) && (!exists("translation.tab") || 
+            is.null(translation.tab)))) 
             return(out)
     }
     tmp.out <- as.list(gns)
     names(tmp.out) <- gns
-    if (is.null(ft)) 
-        return(tmp.out)
+    if (is.null(ft) && (!exists("translation.tab") || is.null(translation.tab))) 
+        return(c(out, tmp.out))
     gns.orig <- gns
     gns <- gsub("m$|_\\d$|\\-\\S$", "", gns, perl = T)
     gns <- gsub("([\\[\\]\\(\\)\\{\\}\\.\\+\\-'\"])", "\\\\\\1", 
@@ -3034,7 +3081,7 @@ function (scores = r.scores, cor.cutoff = 0.9)
 }
 install.binaries <-
 function (meme.version = "4.3.0", url = sprintf("http://meme.nbcr.net/downloads/old_versions/meme_%s.tar.gz", 
-    meme.version)) 
+    meme.version), make = "make -j 4") 
 {
     cwd <- setwd(system.file(package = "cMonkey"))
     on.exit(setwd(cwd))
@@ -3048,7 +3095,7 @@ function (meme.version = "4.3.0", url = sprintf("http://meme.nbcr.net/downloads/
     dir.create("local")
     system(sprintf("./configure --prefix=%s/local/ --enable-dependency-tracking --enable-opt --disable-shared --disable-fast-install --enable-serial --enable-build-libxml2 --enable-build-libxslt --disable-shared --enable-static --with-gnu-ld", 
         getwd()))
-    system("make")
+    system(make)
     system("make install")
     setwd("..")
     system(sprintf("ln -s meme_%s/local/bin/meme", meme.version))
@@ -3087,40 +3134,6 @@ function (ratios)
     }
     closeAllConnections()
     ratios
-}
-load.sif.interactions <-
-function (sif.fname) 
-{
-    sif <- read.delim(gzfile(sif.fname), sep = "", head = F, 
-        comment = "#")
-    contains.weights <- ncol(sif) == 3 && any(sapply(1:ncol(sif), 
-        function(i) is.numeric(sif[, i])))
-    if (contains.weights) {
-        weight.col <- which(sapply(1:ncol(sif), function(i) is.numeric(sif[, 
-            i])))
-        if (length(weight.col) == 1) {
-            sif[, weight.col] <- sif[, weight.col] * 1000/max(sif[, 
-                weight.col], na.rm = T)
-            if (weight.col == 1) 
-                sif <- sif[, c(2, 1, 3)]
-            else if (weight.col == 3) 
-                sif <- sif[, c(1, 3, 2)]
-            colnames(sif) <- c("V1", "V2", "V3")
-        }
-    }
-    else if (ncol(sif) == 3) {
-        sif <- data.frame(V1 = sif$V1, V2 = rep(1000, nrow(sif)), 
-            V3 = sif$V3)
-    }
-    else {
-        sif <- data.frame(V1 = sif$V1, V2 = rep(1000, nrow(sif)), 
-            V3 = sif$V2)
-    }
-    sif$V2[is.na(sif$V2)] <- 0
-    sif <- sif[, c("V1", "V3", "V2")]
-    colnames(sif) <- c("protein1", "protein2", "combined_score")
-    closeAllConnections()
-    sif
 }
 make.pv.ev.matrix <-
 function (out.ms, make.ev = F) 
@@ -3178,9 +3191,8 @@ function (k, seq.type = names(mot.weights)[1], verbose = F, force = F,
     meme.out <- mast.out <- NULL
     cmd <- sprintf(meme.cmd[seq.type], n.motifs[[seq.type]][iter])
     pal.opt <- "non"
-    if (grepl("-pal=non", cmd)) {
-        cmd <- gsub("-pal=non", "", cmd)
-    }
+    if ("pal.opt" %in% names(list(...))) 
+        pal.opt <- list(...)$pal.opt
     get.meme.consensus <- function(cmd, min.iter = 500, max.e.value = 0.1, 
         ...) {
         if (grepl("-cons $compute", cmd, fixed = T)) {
@@ -3502,10 +3514,11 @@ function (ks = 1:k.clust, seq.type = names(mot.weights)[1], verbose = T,
     invisible(out.ms)
 }
 motif.one.cluster <-
-function (k, seq.type = names(mot.weights)[1], verbose = F, ...) 
+function (k, seq.type = names(mot.weights)[1], verbose = F, force = F, 
+    ...) 
 {
     st <- strsplit(seq.type, " ")[[1]]
-    out <- NULL
+    out <- meme.scores[[seq.type]][[k]]
     if (st[2] == "meme") 
         out <- meme.one.cluster(k, seq.type = seq.type, verbose, 
             ...)
@@ -5097,9 +5110,42 @@ function (cmd, tlimit = 600)
     out <- readLines(pipe(cmd, open = "rt"))
     out
 }
+update.cmonkey.env <-
+function (object, ...) 
+{
+    if (file.exists("cmonkey-funcs.R")) {
+        tmp.e <- new.env()
+        sys.source("cmonkey-funcs.R", envir = tmp.e)
+        sys.source("cmonkey-postproc.R", envir = tmp.e)
+    }
+    else {
+        tmp.e <- environment(cMonkey:::cmonkey)
+    }
+    for (i in ls(tmp.e)) {
+        if (i %in% c("DATE", "VERSION")) 
+            next
+        f <- try(get(i, envir = tmp.e))
+        f2 <- try(get(paste("super", i, sep = "."), envir = object), 
+            silent = T)
+        if (class(f) == "function") {
+            environment(f) <- object
+            if (class(f2) != "function") 
+                assign(i, f)
+            else assign(paste("super", i, sep = "."), f)
+        }
+    }
+    rm(f, f2, tmp.e, i)
+    for (i in ls()) {
+        if (i %in% c("i", "object")) 
+            next
+        f <- get(i)
+        if (is.function(f)) 
+            assign(i, f, object)
+    }
+}
 viewPssm <-
 function (pssm, e.val = NA, mot.ind = NA, use.char = T, main.title = NA, 
-    ...) 
+    no.par = F, ...) 
 {
     if (is.null(pssm)) 
         return()
@@ -5134,7 +5180,8 @@ function (pssm, e.val = NA, mot.ind = NA, use.char = T, main.title = NA,
         polygon(x, y, col = color, border = color)
     }
     win.size <- nrow(pssm)
-    par(mar = rep(0.5, 4) + 0.1, mgp = c(3, 1, 0) * 0.75)
+    if (!no.par) 
+        par(mar = rep(0.5, 4) + 0.1, mgp = c(3, 1, 0) * 0.75)
     if (any(pssm <= 0)) 
         pssm <- pssm + 1e-10
     if (any(pssm > 1)) 
@@ -5247,7 +5294,7 @@ function (ks = sapply(as.list(clusterStack), "[[", "k"), para.cores = 1,
         require(igraph)
         cat("SVGS: ")
         for (qqq in 1:3) {
-            mc$apply(ks, function(k) {
+            lapply(ks, function(k) {
                 if (k%%25 == 0) 
                   cat(k)
                 else cat(".")
@@ -5268,7 +5315,7 @@ function (ks = sapply(as.list(clusterStack), "[[", "k"), para.cores = 1,
     if ("pdf" %in% output) {
         require(igraph)
         cat("PDFS: ")
-        mc$apply(ks, function(k) {
+        lapply(ks, function(k) {
             if (k%%25 == 0) 
                 cat(k)
             else cat(".")

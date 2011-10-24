@@ -1,31 +1,23 @@
 DATE <-
-"Tue Oct  4 14:02:11 2011"
+"Mon Oct 24 13:13:59 2011"
 VERSION <-
-"5.0.0"
+"4.9.0"
 .onLoad <-
-function (libname, pkgname) 
-{
-    packageStartupMessage("Loading ", pkgname, " version ", VERSION, 
-        " (", DATE, ")")
-    packageStartupMessage("Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org.")
-    packageStartupMessage("http://baliga.systemsbiology.net/cmonkey")
-    if (grepl("beta", VERSION)) 
-        return()
-    vers <- try(readLines("http://baliga.systemsbiology.net/cmonkey/VERSION"), 
-        silent = T)
-    if (class(vers) != "try-error") {
-        vers <- gsub(" ", "", vers)
-        if (vers != VERSION) 
-            packageStartupMessage("\nYou are not using the most current version of cMonkey.\nPlease consider upgrading to v", 
-                vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", 
-                vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", 
-                vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website.")
-        else packageStartupMessage("Congratulations! You are using the latest version of cMonkey.\n")
+function( libname, pkgname ) { ##.onAttach
+    packageStartupMessage( "Loading ", pkgname, " version ", VERSION, " (", DATE, ")" )
+    packageStartupMessage( "Copyright (C) David J Reiss, Institute for Systems Biology; dreiss@systemsbiology.org." )
+    packageStartupMessage( "http://baliga.systemsbiology.net/cmonkey" )
+    if ( grepl( "beta", VERSION ) ) return()
+    vers <- try( readLines( "http://baliga.systemsbiology.net/cmonkey/VERSION" ), silent=T )
+    if ( class( vers ) != "try-error" ) {
+      vers <- gsub( " ", "", vers )
+      if ( vers != VERSION ) packageStartupMessage( "\nYou are not using the most current version of cMonkey.\nPlease consider upgrading to v", vers, " via:\n\n> download.file( \"http://baliga.systemsbiology.net/cmonkey/cMonkey_", vers, ".tar.gz\", \n\t\t\"cMonkey_", vers, ".tar.gz\" )\n> install.packages( \"cMonkey_", vers, ".tar.gz\", repos=NULL )\n\nOr by following the instructions on the cMonkey website." )
+      else packageStartupMessage( "Congratulations! You are using the latest version of cMonkey.\n" )
+    } else {
+      packageStartupMessage( "Could not check to see if you are using the latest version of cMonkey." )
     }
-    else {
-        packageStartupMessage("Could not check to see if you are using the latest version of cMonkey.")
-    }
-}
+  }
+
 DEBUG <-
 function (...) 
 {
@@ -337,7 +329,7 @@ function (genes, ks = 1:k.clust, p.val = F)
     }))
 }
 cm.version <-
-"5.0.0"
+"4.9.0"
 cmonkey <-
 function (env = NULL, ...) 
 {
@@ -737,28 +729,6 @@ function (env = NULL, ...)
             message("Organism is ", organism, " ", cog.org, " ", 
                 rsat.species, " ", taxon.id)
         }
-        genome.info$operons <- NULL
-        if ((operon.shift || "operons" %in% names(net.weights)) && 
-            !no.genome.info) {
-            tmp.operons <- try(get.operon.predictions("microbes.online"))
-            if (class(tmp.operons) == "try-error") {
-                message("Could not fetch operons file. Assuming it doesn't exist (eukaryote?)")
-                set.param("is.eukaryotic", TRUE, override = T)
-                set.param("operon.shift", FALSE, override = T)
-                operon.shift[1:length(operon.shift)] <- FALSE
-                if ("operons" %in% names(net.weights)) {
-                  net.weights <- net.weights[names(net.weights) != 
-                    "operons"]
-                  set.param("net.weights", net.weights, override = T)
-                }
-            }
-            else {
-                genome.info$operons <- tmp.operons
-            }
-            rm(tmp.operons)
-            if (!is.null(env)) 
-                assign("genome.info", genome.info, envir = env)
-        }
         if (exists("ratios") && !is.null(ratios)) 
             tmp <- toupper(attr(ratios, "rnames"))
         else if (exists("genome.info") && !is.null(genome.info$feature.names)) {
@@ -790,8 +760,33 @@ function (env = NULL, ...)
             message("Could not find a common gene/probe identifier prefix. This only matters if there's no expression matrix.")
             prefix <- genome.info$gene.prefix <- NA
         }
+        genome.info$all.gene.names <- unique(as.character(subset(genome.info$feature.names, 
+            grepl(paste("^", prefix, sep = ""), names, ignore = T, 
+                perl = T), select = "names", drop = T)))
         if (!is.null(env)) 
             assign("genome.info", genome.info, envir = env)
+        genome.info$operons <- NULL
+        if ((operon.shift || "operons" %in% names(net.weights)) && 
+            !no.genome.info) {
+            tmp.operons <- try(get.operon.predictions("microbes.online"))
+            if (class(tmp.operons) == "try-error") {
+                message("Could not fetch operons file. Assuming it doesn't exist (eukaryote?)")
+                set.param("is.eukaryotic", TRUE, override = T)
+                set.param("operon.shift", FALSE, override = T)
+                operon.shift[1:length(operon.shift)] <- FALSE
+                if ("operons" %in% names(net.weights)) {
+                  net.weights <- net.weights[names(net.weights) != 
+                    "operons"]
+                  set.param("net.weights", net.weights, override = T)
+                }
+            }
+            else {
+                genome.info$operons <- tmp.operons
+            }
+            rm(tmp.operons)
+            if (!is.null(env)) 
+                assign("genome.info", genome.info, envir = env)
+        }
         if (!exists("ratios") || is.null(ratios)) {
             message("WARNING: No ratios matrix -- will generate an 'empty' one with all annotated ORFs for 'probes'.")
             if (!is.na(prefix)) 
@@ -816,8 +811,8 @@ function (env = NULL, ...)
             for (i in names(mot.weights)) {
                 cat("Pre-computing all '", i, "' seqs (", paste(motif.upstream.scan[[i]], 
                   collapse = ", "), ")...\n", sep = "")
-                genome.info$all.upstream.seqs[[i]] <- get.sequences(attr(ratios, 
-                  "rnames"), seq.type = i, distance = motif.upstream.scan[[i]], 
+                genome.info$all.upstream.seqs[[i]] <- get.sequences(genome.info$all.gene.names, 
+                  seq.type = i, distance = motif.upstream.scan[[i]], 
                   filter = F)
                 if (!is.null(env)) 
                   assign("genome.info", genome.info, envir = env)
@@ -828,7 +823,7 @@ function (env = NULL, ...)
                     bg.order[i], ")...\n", sep = "")
                   tmp.seqs <- if (!is.null(genome.info$all.upstream.seqs[[i]])) 
                     genome.info$all.upstream.seqs[[i]]
-                  else get.sequences(attr(ratios, "rnames"), 
+                  else get.sequences(genome.info$all.gene.names, 
                     distance = motif.upstream.search[[i]], seq.type = i, 
                     filter = F)
                   genome.info$bg.fname[i] <- my.tempfile("meme.tmp", 
@@ -1444,6 +1439,29 @@ function (org, rows = attr(ratios, "rnames"))
     out
 }
 get.STRING.links <-
+function (org.id = genome.info$org.id$V1[1], detailed = T) 
+{
+    url <- sprintf("http://baliga.systemsbiology.net/cmonkey/data/STRING/%d_STRING.tsv.gz", 
+        org.id)
+    fname <- sprintf("data/%s/string_links.tab.gz", rsat.species)
+    if ((!file.exists(fname) || file.info(fname)$size <= 10)) {
+        err <- dlf(fname, url, paste("Fetching STRING protein links file", 
+            url, "\n"))
+    }
+    if (file.exists(fname) && file.info(fname)$size > 10) {
+        cat("Loading EMBL STRING interaction links from local file", 
+            fname, "\n")
+        string.links <- read.delim(gzfile(fname), sep = "\t", 
+            head = F)
+        colnames(string.links) <- c("protein1", "protein2", "combined_score")
+    }
+    else {
+        string.links <- get.string.links.NEW(org.id)
+    }
+    closeAllConnections()
+    invisible(string.links)
+}
+get.STRING.links.NEW <-
 function (org.id = genome.info$org.id$V1[1], all.genes = attr(ratios, 
     "rnames"), score = "score", min.score = 2, string.url = "http://string-db.org/") 
 {
@@ -1492,6 +1510,8 @@ function (org.id = genome.info$org.id$V1[1], all.genes = attr(ratios,
         options(timeout = 300)
         for (i in seq(1, length(all.genes), by = 100)) {
             ids <- all.genes[i:min(i + 99, length(all.genes))]
+            ids <- c(ids, paste(org.id, all.genes[i:min(i + 99, 
+                length(all.genes))], sep = "."))
             cat(i, "of", length(all.genes), "\n")
             if (org.id == 3702) {
                 url <- paste(string.url, "api/tsv/resolveList?caller_identity=cMonkey&identifiers=", 
@@ -2545,9 +2565,6 @@ function (k, seq.type = paste(c("upstream", "upstream.noncod",
     if (is.null(rows)) 
         return(NULL)
     start.stops <- NULL
-    if (is.na(seq.type) || strsplit(seq.type, " ")[[1]][1] == 
-        "gene") 
-        op.shift <- FALSE
     n.seq.type <- strsplit(seq.type, " ")[[1]][1]
     if (substr(n.seq.type, 1, 8) == "fstfile=") {
         if (!is.null(genome.info$all.upstream.seqs[[seq.type]]) && 
@@ -2594,7 +2611,11 @@ function (k, seq.type = paste(c("upstream", "upstream.noncod",
                   " sequences!")
             }
         }
-        op.shift <- operon.shift[seq.type]
+        if (is.na(seq.type)) 
+            op.shift <- FALSE
+        else op.shift <- operon.shift[seq.type]
+        if (n.seq.type %in% c("gene", "upstream.noncod", "upstream.noncod.same.strand")) 
+            op.shift <- FALSE
         coos <- get.gene.coords(rows, op.shift)
         if (is.null(coos) || nrow(coos) <= 0) 
             return(NULL)
@@ -2605,7 +2626,7 @@ function (k, seq.type = paste(c("upstream", "upstream.noncod",
         if (n.seq.type %in% c("upstream.noncod", "upstream.noncod.same.strand")) {
             all.coos <- genome.info$feature.tab[, c("id", "name", 
                 "contig", "strand", "start_pos", "end_pos")]
-            all.coos <- subset(all.coos, name %in% unlist(genome.info$synonyms))
+            all.coos <- subset(all.coos, grepl("^NP_", id, perl = T))
         }
         mc <- get.parallel(nrow(coos))
         tmp <- mc$apply(1:nrow(coos), function(i) {
@@ -4932,6 +4953,38 @@ function (seqs)
     sapply(seqs, function(seq) paste(rev(strsplit(toupper(chartr("ATCG", 
         "tagc", seq)), "")[[1]]), collapse = ""))
 }
+row.col.membership.from.clusterStack <-
+function (cs) 
+{
+    row.memb <- col.memb <- NULL
+    for (k in 1:length(cs)) {
+        row.memb <- cbind(row.memb, rep(0, attr(ratios, "nrow")))
+        if (ncol(row.memb) == 1) 
+            rownames(row.memb) <- attr(ratios, "rnames")
+        rows <- cs[[k]]$rows
+        rows <- rows[!is.na(rows)]
+        row.memb[rows, k] <- k
+        col.memb <- cbind(col.memb, rep(0, attr(ratios, "ncol")))
+        if (ncol(col.memb) == 1) 
+            rownames(col.memb) <- attr(ratios, "cnames")
+        cols <- cs[[k]]$cols
+        cols <- cols[!is.na(cols)]
+        col.memb[cols, k] <- k
+    }
+    row.memb <- t(apply(row.memb, 1, function(i) c(i[i != 0], 
+        i[i == 0])))
+    row.memb <- row.memb[, apply(row.memb, 2, sum) != 0, drop = F]
+    colnames(row.memb) <- NULL
+    col.memb <- t(apply(col.memb, 1, function(i) c(i[i != 0], 
+        i[i == 0])))
+    col.memb <- col.memb[, apply(col.memb, 2, sum) != 0, drop = F]
+    colnames(col.memb) <- NULL
+    if (ncol(row.memb) < n.clust.per.row) 
+        row.memb <- cbind(row.memb, rep(0, nrow(row.memb)))
+    if (ncol(col.memb) < n.clust.per.col) 
+        col.memb <- cbind(col.memb, rep(0, nrow(col.memb)))
+    list(r = row.memb, c = col.memb)
+}
 runMast <-
 function (memeOut, mast.cmd, genes, seqs, bgseqs = NULL, bg.list = NULL, 
     bgfname = NULL, unlink = T, verbose = F, ...) 
@@ -5451,7 +5504,8 @@ function (ks = sapply(as.list(clusterStack), "[[", "k"), para.cores = 1,
             refseq.names <- grep("^NP_", refseq.names, val = T)
             upstream.seqs <- try(get.sequences(k, filter = F, 
                 uniq = F), silent = T)
-            if (class(upstream.seqs) == "try-error" || is.null(upstream.seqs)) {
+            if (class(upstream.seqs) == "try-error" || is.null(upstream.seqs) || 
+                length(upstream.seqs) == 0) {
                 upstream.seqs <- rep("", length(rows))
                 names(upstream.seqs) <- rows
             }
@@ -5761,7 +5815,12 @@ function (ks = sapply(as.list(clusterStack), "[[", "k"), para.cores = 1,
             as.integer(rownames(cluster.summ))), table = F)
         if (!is.null(seq.type)) {
             e.val.1 <- lapply(meme.scores[[seq.type]][as.integer(rownames(cluster.summ))], 
-                function(i) i$meme.out[[1]]$e.value)
+                function(i) {
+                  mo <- i$meme.out
+                  if (length(mo) >= 1) 
+                    mo[[1]]$e.value
+                  else Inf
+                })
             for (i in 1:length(e.val.1)) if (is.null(e.val.1[[i]])) 
                 e.val.1[[i]] <- NA
             himg1 <- hwriteImage(sprintf("htmls/cluster%04d_pssm1.png", 
@@ -5771,7 +5830,12 @@ function (ks = sapply(as.list(clusterStack), "[[", "k"), para.cores = 1,
                 sep = "<br>"), center = TRUE, table = F)
             if (!is.null(seq.type)) 
                 e.val.2 <- lapply(meme.scores[[seq.type]][as.integer(rownames(cluster.summ))], 
-                  function(i) i$meme.out[[2]]$e.value)
+                  function(i) {
+                    mo <- i$meme.out
+                    if (length(mo) > 1) 
+                      mo[[2]]$e.value
+                    else Inf
+                  })
             else e.val.2 <- as.list(rep(NA, k.clust))
             for (i in 1:length(e.val.2)) if (is.null(e.val.2[[i]])) 
                 e.val.2[[i]] <- NA
